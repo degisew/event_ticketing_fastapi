@@ -9,4 +9,5 @@ class BaseRoleSchema(BaseModel):
 
 
 class RoleResponseSchema(BaseRoleSchema, CommonResponseSchema):
-    pass
+    class Config:
+        from_attributes = True  # needed to use model_validate method in the service
