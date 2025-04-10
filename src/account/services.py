@@ -1,32 +1,36 @@
-from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+from src.core.db import engine
 from src.account.models import Role
 from src.account.schemas.roles import BaseRoleSchema, RoleResponseSchema
 
 
 class RoleService:
     @staticmethod
-    def create_role(session: Session, validated_data: BaseRoleSchema):
+    def create_role(db: Session, validated_data: BaseRoleSchema):
         role = Role(
             name=validated_data.name,
             code=validated_data.code
         )
 
         # Add the new Role to the session
-        session.add(role)
-        session.commit()
+        db.add(role)
+        db.commit()
 
         # Refresh the role object to get the ID and other DB values
-        session.refresh(role)
+        db.refresh(role)
 
         return role
 
     @staticmethod
-    def list_roles(session: Session):
-        stmt = select(Role)
-        result = session.execute(stmt)
-        roles = result.scalars().all()
-        return [RoleResponseSchema.from_orm(role) for role in roles]
+    def list_roles():
+        try:
+            statement = select(Role)
+            with Session(engine) as db:
+                result = db.execute(statement).scalars().all()
+            return [RoleResponseSchema.model_validate(role) for role in result]
+        except Exception as e:
+            raise e
 
 
 class UserService:
