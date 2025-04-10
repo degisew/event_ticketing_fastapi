@@ -1,6 +1,6 @@
 from sqlalchemy import UUID, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from src.core.models import AbstractBaseModel, Base
+from src.core.models import AbstractBaseModel
 
 
 class Role(AbstractBaseModel):
