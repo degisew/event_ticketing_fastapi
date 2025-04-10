@@ -14,10 +14,9 @@ router = APIRouter(prefix="/roles", tags=["account"])
 
 @router.get("/", tags=["account"])
 async def get_roles() -> List[RoleResponseSchema]:
-    return RoleService.list_roles(DbSession)
+    return RoleService.list_roles()
 
 
 @router.post("/", tags=["account"])
 async def create_roles(session: DbSession, role: BaseRoleSchema):
     return RoleService.create_role(session, role)
-

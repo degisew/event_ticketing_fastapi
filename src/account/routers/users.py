@@ -24,7 +24,7 @@ async def get_users() -> List[UserResponseschema]:
     "/{user_id}",
     response_model=UserResponseschema
 )
-async def get_user(user_id: uuid.UUID):
+async def get_user(user_id: uuid.UUID) -> dict[str, str]:
     """
     Get user by ID.
     """
