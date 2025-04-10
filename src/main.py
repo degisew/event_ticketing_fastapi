@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from src.account.router import router as account_router
-
-# from src.core.db import create_db_and_tables
+from src.core.exceptions import register_global_exceptions
 
 
 app = FastAPI()
@@ -10,4 +9,4 @@ app = FastAPI()
 app.include_router(account_router, prefix="/account")
 
 
-# create_db_and_tables()
+register_global_exceptions(app)
