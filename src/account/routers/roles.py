@@ -2,7 +2,8 @@ from typing import List
 import uuid
 from fastapi import APIRouter
 
-from src.account.schemas.roles import (
+from src.account.models import Role
+from src.account.schemas import (
     BaseRoleSchema,
     RoleResponseSchema,
 )
@@ -14,13 +15,13 @@ router = APIRouter(prefix="/roles", tags=["account"])
 
 
 @router.get("/")
-async def get_roles() -> List[RoleResponseSchema]:
-    return RoleService.get_roles()
+async def get_roles(db: DbSession) -> List[RoleResponseSchema]:
+    return RoleService.get_roles(db)
 
 
 @router.post("/")
-async def create_roles(session: DbSession, role: BaseRoleSchema):
-    return RoleService.create_role(session, role)
+async def create_roles(db: DbSession, role: BaseRoleSchema) -> RoleResponseSchema:
+    return RoleService.create_role(db, role)
 
 
 @router.get("/{role_id}")
@@ -29,5 +30,7 @@ async def get_role(db: DbSession, role_id: uuid.UUID) -> RoleResponseSchema:
 
 
 @router.patch("/{role_id}")
-async def update_role(db: DbSession, role_id: uuid.UUID, role: BaseRoleSchema) -> RoleResponseSchema:
+async def update_role(
+    db: DbSession, role_id: uuid.UUID, role: BaseRoleSchema
+) -> RoleResponseSchema:
     return RoleService.update_role(db, role_id, role)

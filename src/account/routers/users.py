@@ -2,50 +2,53 @@ import uuid
 from typing import List
 from fastapi import APIRouter, status
 
-from src.account.schemas.users import (
+from src.account.schemas import (
     BaseUserSchema,
     UserSchema,
-    UserResponseschema
+    UserResponseSchema
 )
+
+from src.account.services import UserService
+from src.core.db import DbSession
 
 
 router = APIRouter(prefix="/users", tags=["account"])
 
 
 @router.get("/")
-async def get_users() -> List[UserResponseschema]:
+async def get_users(db: DbSession) -> List[UserResponseSchema]:
     """
     Get all users.
     """
-    return []
+    return UserService.get_users(db)
 
 
 @router.get(
     "/{user_id}",
-    response_model=UserResponseschema
+    response_model=UserResponseSchema
 )
-async def get_user(user_id: uuid.UUID) -> dict[str, str]:
+async def get_user(db: DbSession, user_id: uuid.UUID) -> UserResponseSchema:
     """
     Get user by ID.
     """
-    return {"user": "user {user_id}"}
+    return UserService.get_user(db, user_id)
 
 
 @router.post(
     "/",
-    response_model=UserResponseschema,
+    response_model=UserResponseSchema,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_user(user: UserSchema) -> UserSchema:
+async def create_user(db: DbSession, user: UserSchema) -> UserResponseSchema:
     """
     Create a new user.
     """
-    return user
+    return UserService.create_user(db, user)
 
 
-@router.patch("/{user_id}", response_model=UserResponseschema)
-async def update_user(user_id: uuid.UUID, user: BaseUserSchema):
+@router.patch("/{user_id}", response_model=UserResponseSchema)
+async def update_user(db: DbSession, user_id: uuid.UUID, user: BaseUserSchema):
     """
     Update an existing user.
     """
-    return user
+    return UserService.update_user(db, user_id, user)
