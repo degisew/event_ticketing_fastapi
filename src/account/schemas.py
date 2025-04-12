@@ -1,19 +1,30 @@
-import uuid
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field, EmailStr
+from src.core.schemas import CommonResponseSchema
 
 
-class UserSchema(BaseModel):
+class BaseRoleSchema(BaseModel):
+    name: str = Field(max_length=10)
+    code: str = Field(max_length=10)
+
+
+class RoleResponseSchema(BaseRoleSchema, CommonResponseSchema):
+    class Config:
+        from_attributes = True  # needed to use model_validate method in the service
+
+
+class BaseUserSchema(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=50)
+
+
+class UserSchema(BaseUserSchema):
     password: str = Field(..., min_length=8, max_length=100)
     confirm_password: str = Field(..., min_length=8, max_length=100)
 
 
-class UserResponseschema(BaseModel):
-    id: uuid.UUID
-    username: str
-    email: EmailStr
+class UserResponseSchema(BaseUserSchema, CommonResponseSchema):
     is_active: bool
     is_profile_complete: bool
-    created_at: str
-    updated_at: str
+
+    class Config:
+        from_attributes = True

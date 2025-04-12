@@ -1,6 +1,16 @@
 from sqlalchemy import UUID, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from core.models import AbstractBaseModel
+from src.core.models import AbstractBaseModel
+
+
+class Role(AbstractBaseModel):
+    __tablename__ = "roles"
+
+    name: Mapped[str] = mapped_column(nullable=False)
+    code: Mapped[str] = mapped_column(nullable=False)
+
+    def __repr__(self) -> str:
+        return f"{self.name}"
 
 
 class User(AbstractBaseModel):

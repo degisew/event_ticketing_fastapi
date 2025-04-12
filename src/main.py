@@ -1,8 +1,12 @@
 from fastapi import FastAPI
-from src.account import routes as account_routes
+from src.account.router import router as account_router
+from src.core.exceptions import register_global_exceptions
 
 
 app = FastAPI()
 
 
-app.include_router(account_routes.router)
+app.include_router(account_router, prefix="/account")
+
+
+register_global_exceptions(app)
