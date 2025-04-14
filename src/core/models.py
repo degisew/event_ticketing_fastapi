@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped
-from sqlalchemy import func
+from sqlalchemy import func, DateTime, Uuid
 
 
 class Base(DeclarativeBase):
@@ -21,10 +21,14 @@ class AbstractBaseModel(Base):
 
     __abstract__ = True
 
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), primary_key=True, default=uuid.uuid4
+    )
 
-    created_at: Mapped[datetime] = mapped_column(default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(), default=func.now()
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
-        onupdate=func.now(), default=func.now()
+        DateTime(), onupdate=func.now(), default=func.now()
     )

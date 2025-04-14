@@ -1,4 +1,11 @@
-from sqlalchemy import UUID, ForeignKey
+import uuid
+from sqlalchemy import (
+    Uuid,
+    ForeignKey,
+    String,
+    Boolean,
+    UniqueConstraint
+)
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from src.core.models import AbstractBaseModel
 
@@ -6,8 +13,8 @@ from src.core.models import AbstractBaseModel
 class Role(AbstractBaseModel):
     __tablename__ = "roles"
 
-    name: Mapped[str] = mapped_column(nullable=False)
-    code: Mapped[str] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    code: Mapped[str] = mapped_column(String(50), nullable=False)
 
     def __repr__(self) -> str:
         return f"{self.name}"
@@ -21,19 +28,19 @@ class User(AbstractBaseModel):
 
     __tablename__ = "users"
 
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
 
-    email: Mapped[str] = mapped_column(unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
-    password: Mapped[str] = mapped_column(nullable=False)
+    password: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    is_active: Mapped[bool] = mapped_column(default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean(), default=True)
 
-    is_superuser: Mapped[bool] = mapped_column(default=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean(), default=False)
 
-    is_profile_complete: Mapped[bool] = mapped_column(default=False)
+    is_profile_complete: Mapped[bool] = mapped_column(Boolean(), default=False)
 
-    profile: Mapped[list["UserProfile"]] = relationship(back_populates="user")
+    profile: Mapped["UserProfile"] = relationship(back_populates="user")
 
     def __repr__(self) -> str:
         return f"{self.username} <{self.email}>"
@@ -47,13 +54,16 @@ class UserProfile(AbstractBaseModel):
 
     __tablename__ = "user_profiles"
 
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    # Forcing one-to-one in db level
+    __table_args__ = (UniqueConstraint("user_id"),)
 
-    user: Mapped["User"] = relationship(back_populates="profile")
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("users.id"))
 
-    first_name: Mapped[str] = mapped_column(nullable=False)
+    user: Mapped["User"] = relationship(back_populates="profile", single_parent=True)
 
-    last_name: Mapped[str] = mapped_column(nullable=False)
+    first_name: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    last_name: Mapped[str] = mapped_column(String(50), nullable=False)
 
     def __repr__(self) -> str:
         return f"{self.first_name} {self.last_name}"
