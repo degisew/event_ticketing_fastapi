@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 
-class CommonResponseSchema:
+class BaseResponseSchema:
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime

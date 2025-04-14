@@ -24,8 +24,6 @@ class Event(AbstractBaseModel):
 
     organizer_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("users.id"))
 
-    organizer: Mapped["User"] = relationship(back_populates="events")
-
     description: Mapped[str] = mapped_column(Text())
 
     location: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -39,6 +37,8 @@ class Event(AbstractBaseModel):
     end_time: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
 
     # Relationships
+    organizer: Mapped["User"] = relationship()
+
     ticket_types: Mapped[list["TicketType"]] = relationship(back_populates="event")
 
     seats: Mapped[list["Seat"]] = relationship(back_populates="event")
@@ -90,6 +90,7 @@ class Seat(AbstractBaseModel):
 
     # Relationships
     event: Mapped["Event"] = relationship(back_populates="seats")
+    ticket: Mapped["Ticket"] = relationship(back_populates="seat")
 
     def __repr__(self) -> str:
         row = f"Row {self.row_number}" if self.row_number is not None else "No Row"
@@ -118,9 +119,9 @@ class Ticket(AbstractBaseModel):
     )
 
     # Relationships
-    event: Mapped["Event"] = relationship(back_populates="tickets")
+    event: Mapped["Event"] = relationship()
 
-    ticket_type: Mapped["TicketType"] = relationship(back_populates="tickets")
+    ticket_type: Mapped["TicketType"] = relationship()
 
     seat: Mapped["Seat"] = relationship(
         back_populates="ticket", single_parent=True

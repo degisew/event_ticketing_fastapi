@@ -40,6 +40,7 @@ class User(AbstractBaseModel):
 
     is_profile_complete: Mapped[bool] = mapped_column(Boolean(), default=False)
 
+    # Relationships
     profile: Mapped["UserProfile"] = relationship(back_populates="user")
 
     def __repr__(self) -> str:

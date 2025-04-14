@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from src.core.schemas import CommonResponseSchema
+from src.core.schemas import BaseResponseSchema
 
 
 class BaseRoleSchema(BaseModel):
@@ -7,7 +7,7 @@ class BaseRoleSchema(BaseModel):
     code: str = Field(max_length=10)
 
 
-class RoleResponseSchema(BaseRoleSchema, CommonResponseSchema):
+class RoleResponseSchema(BaseRoleSchema, BaseResponseSchema):
     class Config:
         from_attributes = True  # needed to use model_validate method in the service
 
@@ -22,7 +22,7 @@ class UserSchema(BaseUserSchema):
     confirm_password: str = Field(..., min_length=8, max_length=100)
 
 
-class UserResponseSchema(BaseUserSchema, CommonResponseSchema):
+class UserResponseSchema(BaseUserSchema, BaseResponseSchema):
     is_active: bool
     is_profile_complete: bool
 
