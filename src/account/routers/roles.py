@@ -2,7 +2,6 @@ from typing import List
 import uuid
 from fastapi import APIRouter
 
-from src.account.models import Role
 from src.account.schemas import (
     BaseRoleSchema,
     RoleResponseSchema,

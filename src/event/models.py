@@ -1,5 +1,7 @@
 import uuid
-from datetime import datetime
+from decimal import Decimal
+from datetime import datetime, timedelta, timezone
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import (
     Boolean,
     ForeignKey,
@@ -8,12 +10,11 @@ from sqlalchemy import (
     DateTime,
     String,
     Integer,
-    Text,
-    func
+    Numeric,
+    Text
 )
-from sqlalchemy.orm import mapped_column, Mapped, relationship
-from core.models import AbstractBaseModel
 from src.account.models import User
+from src.core.models import AbstractBaseModel
 
 
 class Event(AbstractBaseModel):
@@ -27,14 +28,17 @@ class Event(AbstractBaseModel):
 
     description: Mapped[str] = mapped_column(Text())
 
-    location: Mapped[str] = mapped_column(String(100))
+    location: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    venue: Mapped[str] = mapped_column(String(100))
+    venue: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    total_tickets: Mapped[int] = mapped_column(Integer())
+    total_tickets: Mapped[int] = mapped_column(Integer(), nullable=False)
 
-    start_time: Mapped[datetime] = mapped_column(DateTime())
+    start_time: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
 
+    end_time: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
+
+    # Relationships
     ticket_types: Mapped[list["TicketType"]] = relationship(back_populates="event")
 
     seats: Mapped[list["Seat"]] = relationship(back_populates="event")
@@ -48,16 +52,17 @@ class TicketType(AbstractBaseModel):
 
     name: Mapped[str] = mapped_column(String(50), nullable=False)
 
-    description: Mapped[str] = mapped_column(Text())
+    description: Mapped[str] = mapped_column(Text(), nullable=False)
 
-    price: Mapped[int] = mapped_column(Integer())
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
-    total_tickets: Mapped[int] = mapped_column(Integer())
+    total_tickets: Mapped[int] = mapped_column(Integer(), nullable=False)
 
     remaining_tickets: Mapped[int] = mapped_column(Integer())
 
     event_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("events.id"))
 
+    # Relationships
     event: Mapped["Event"] = relationship(back_populates="ticket_types")
 
     def __repr__(self) -> str:
@@ -66,13 +71,12 @@ class TicketType(AbstractBaseModel):
 
 class Seat(AbstractBaseModel):
     __tablename__ = "seats"
+
     __table_args__ = (
         UniqueConstraint(
-            "event_id", "section", "row_number", "seat_number", name="uq_event_seat"
+            "event_id", "section", "seat_number", name="unq_event_seat"
         ),
     )
-
-    event_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("events.id"))
 
     section: Mapped[str] = mapped_column(String(50), nullable=False)
 
@@ -82,6 +86,9 @@ class Seat(AbstractBaseModel):
 
     is_available: Mapped[bool] = mapped_column(Boolean(), default=True)
 
+    event_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("events.id"))
+
+    # Relationships
     event: Mapped["Event"] = relationship(back_populates="seats")
 
     def __repr__(self) -> str:
@@ -94,6 +101,10 @@ class Ticket(AbstractBaseModel):
 
     __table_args__ = (UniqueConstraint("seat_id"),)
 
+    price: Mapped[int] = mapped_column(Integer(), nullable=False)
+
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+
     event_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(), ForeignKey("events.id"), nullable=False
     )
@@ -102,13 +113,9 @@ class Ticket(AbstractBaseModel):
         Uuid(), ForeignKey("ticket_types.id"), nullable=False
     )
 
-    seat_id: Mapped[uuid.UUID | None] = mapped_column(
+    seat_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(), ForeignKey("seats.id"), nullable=False
     )
-
-    price: Mapped[int] = mapped_column(Integer(), nullable=False)
-
-    status: Mapped[str] = mapped_column(String(20), nullable=False)
 
     # Relationships
     event: Mapped["Event"] = relationship(back_populates="tickets")
@@ -127,7 +134,30 @@ class Reservation(AbstractBaseModel):
     __tablename__ = "reservations"
 
     __table_args__ = (
-        UniqueConstraint("event_id", "seat_id", name="uq_event_seat_reservation"),
+        UniqueConstraint(
+            "event_id", "seat_id", name="unq_event_seat_reservation"
+        ),
+    )
+
+    def default_expiry(self) -> datetime:
+        """a helper method for calculating a default
+        reservation expiration time.
+
+        Returns:
+            datetime
+        """
+        return datetime.now(timezone.utc) + timedelta(days=1)
+
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    ticket_quantity: Mapped[int] = mapped_column(Integer(), nullable=False)
+
+    reserved_at: Mapped[datetime] = mapped_column(
+        DateTime(), default=datetime.now(timezone.utc)
+    )
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(), nullable=False, default=default_expiry
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -146,14 +176,6 @@ class Reservation(AbstractBaseModel):
         Uuid(), ForeignKey("seats.id"), nullable=True
     )
 
-    status: Mapped[str] = mapped_column(
-        String(20), nullable=False
-    )
-
-    reserved_at: Mapped[datetime] = mapped_column(DateTime(), default=func.now())
-
-    expires_at: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
-
     # Relationships
     user: Mapped["User"] = relationship()
 
@@ -162,6 +184,10 @@ class Reservation(AbstractBaseModel):
     ticket_type: Mapped["TicketType"] = relationship()
 
     seat: Mapped["Seat"] = relationship()
+
+    @property
+    def is_expired(self) -> bool:
+        return datetime.now(timezone.utc) > self.expires_at
 
     def __repr__(self) -> str:
         return f"Reservation({self.id}) - {self.status} - Expires: {self.expires_at.isoformat()}"
