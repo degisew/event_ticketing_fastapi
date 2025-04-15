@@ -4,9 +4,9 @@ import uuid
 from sqlalchemy import select
 from src.core.db import DbSession
 from src.core.exceptions import NotFoundException
-from src.event.schemas import EventResponseSchema, EventSchema
+from src.event.schemas.event import EventResponseSchema, EventSchema
 
-from src.event.models import Event
+from src.event.models.event import Event
 
 
 class EventService:
