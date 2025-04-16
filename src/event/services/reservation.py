@@ -1,14 +1,21 @@
-from typing import Any, Sequence
+from typing import Any
 import uuid
 
 from sqlalchemy import select
-from src.core.db import DbSession
-from src.core.exceptions import InternalInvariantError
+from src.core.db import DbSession, atomic_transaction
+from src.core.exceptions import (
+    InternalInvariantError,
+    NoEnoughTicketException,
+    NotFoundException,
+)
 from src.core.models import DataLookup
-from src.event.models.event import Seat, Ticket
+from src.event.models.event import Ticket, TicketType
 from src.event.models.reservation import Reservation
 from src.event.schemas.reservation import ReservationResponseSchema, ReservationSchema
-from src.event.enums import SeatStatuses, TicketStatuses
+from src.event.enums import (
+    ReservationStatuses,
+    TicketStatuses
+)
 
 
 class ReservationService:
@@ -19,143 +26,146 @@ class ReservationService:
         serialized_data: dict[str, Any] = validated_data.model_dump(exclude_unset=True)
 
         ticket_type_id = serialized_data.get("ticket_type_id")
-
         event_id = serialized_data.get("event_id")
-
         ticket_quantity = serialized_data.get("ticket_quantity")
 
-        tickets: list[Ticket] = ReservationService.create_tickets(
-            db, event_id, ticket_type_id, ticket_quantity
+        reservation_confirmed_status = db.scalar(
+            select(DataLookup).where(
+                DataLookup.type == ReservationStatuses.TYPE.value,
+                DataLookup.value == ReservationStatuses.CONFIRMED.value,
+            )
         )
+        if not reservation_confirmed_status:
+            raise InternalInvariantError("ReservationStatuses.CONFIRMED DataLookup not found.")
 
-        reservation = Reservation(
-            **serialized_data,
-            status=reservation_booked_status
-            user_id=current_logged_in_user,
-            
-        )
+        with atomic_transaction(db):
+            ReservationService.create_tickets(
+                db, event_id, ticket_type_id, ticket_quantity
+            )
 
-        db.add(reservation)
+            reservation = Reservation(
+                **serialized_data,
+                status=reservation_confirmed_status,
+            )
 
-        db.commit()
+            db.add(reservation)
 
-        db.refresh(reservation)
+            db.flush()
+
+            db.refresh(reservation)
 
         return ReservationResponseSchema.model_validate(reservation)
 
+        # @staticmethod
+        # def assign_seats(
+        #     db: DbSession,
+        #     event_id: uuid.UUID,
+        #     ticket_type_id: uuid.UUID,
+        #     ticket_quantity: int,
+        # ) -> Sequence[Seat]:
+        #     try:
+        #         seat_available_status: DataLookup | None = db.scalar(
+        #             select(DataLookup).where(
+        #                 DataLookup.type == SeatStatuses.TYPE.value,
+        #                 DataLookup.value == SeatStatuses.AVAILABLE.value,
+        #             )
+        #         )
+
+        #         seat_reserved_status: DataLookup | None = db.scalar(
+        #             select(DataLookup).where(
+        #                 DataLookup.type == SeatStatuses.TYPE.value,
+        #                 DataLookup.value == SeatStatuses.RESERVED.value,
+        #             )
+        #         )
+
+        #         if not seat_available_status:
+        #             raise InternalInvariantError(
+        #                 "SeatStatuses.AVAILABLE DataLookup not found."
+        #             )
+
+        #         if not seat_reserved_status:
+        #             raise InternalInvariantError(
+        #                 "SeatStatuses.RESERVED DataLookup not found."
+        #             )
+
+        #         seats: Sequence[Seat] = db.scalars(
+        #             select(Seat)
+        #             .where(
+        #                 Seat.event_id == event_id,
+        #                 Seat.status_id == seat_available_status
+        #             )
+        #             .order_by(Seat.section)
+        #             .limit(ticket_quantity)
+        #         ).all()
+
+        #         if len(seats) < ticket_quantity:
+        #             raise ValueError("No Enough available seats.")
+
+        #         for seat in seats:
+        #             seat.status = seat_reserved_status
+
+        #         return seats
+
+        #     except Exception as e:
+        #         raise e
 
     @staticmethod
-    def assign_seats(
+    def create_tickets(
         db: DbSession,
         event_id: uuid.UUID,
         ticket_type_id: uuid.UUID,
         ticket_quantity: int,
-    ) -> Sequence[Seat]:
-        # TODO: Find a way to get the consecutive available seats
-        # TODO: based on the user's ticket type choice
-        try:
-            seat_available_status: DataLookup | None = db.scalar(
-                select(DataLookup).where(
-                    DataLookup.type == SeatStatuses.TYPE.value,
-                    DataLookup.value == SeatStatuses.AVAILABLE.value,
-                )
-            )
-
-            seat_reserved_status: DataLookup | None = db.scalar(
-                select(DataLookup).where(
-                    DataLookup.type == SeatStatuses.TYPE.value,
-                    DataLookup.value == SeatStatuses.RESERVED.value,
-                )
-            )
-
-            if not seat_available_status:
-                raise InternalInvariantError(
-                    "TicketStatuses.ACTIVE DataLookup not found."
-                )
-
-            if not seat_reserved_status:
-                raise InternalInvariantError(
-                    "TicketStatuses.RESERVED DataLookup not found."
-                )
-
-            seats: Sequence[Seat] = db.scalars(
-                select(Seat).where(
-                    Seat.event_id == event_id,
-                    Seat.status_id == seat_available_status
-                )
-                .order_by(Seat.section)
-                .limit(ticket_quantity)
-            ).all()
-
-            if len(seats) < ticket_quantity:
-                raise ValueError("No Enough available seats.")
-
-            for seat in seats:
-                seat.status = seat_reserved_status
-
-            return seats
-
-        except Exception as e:
-            raise e
-
-    @staticmethod
-    def create_tickets(
-        db: DbSession, event_id, ticket_type_id, ticket_quantity
     ) -> list[Ticket]:
-        try:
-            ticket_status = db.scalar(
-                select(DataLookup).where(
-                    DataLookup.type == TicketStatuses.TYPE.value,
-                    DataLookup.value == TicketStatuses.ACTIVE.value,
-                )
+        ticket_status: DataLookup | None = db.scalar(
+            select(DataLookup).where(
+                DataLookup.type == TicketStatuses.TYPE.value,
+                DataLookup.value == TicketStatuses.ACTIVE.value,
             )
-            if not ticket_status:
-                raise InternalInvariantError(
-                    "Expected TicketStatuses.ACTIVE in DataLookup but not found."
-                )
-            seats: Sequence[Seat] = ReservationService.assign_seats(
-                db,
-                event_id,
-                ticket_type_id,
-                ticket_quantity
+        )
+        if not ticket_status:
+            raise InternalInvariantError("TicketStatuses.ACTIVE DataLookup not found.")
+
+        t_type: TicketType | None = db.get(TicketType, ticket_type_id)
+        if not t_type:
+            raise NotFoundException("Ticket type not found.")
+
+        remaining_tickets: int = t_type.remaining_tickets
+        if remaining_tickets < ticket_quantity:
+            raise NoEnoughTicketException(
+                f"No enough tickets available. Only {remaining_tickets} left."
             )
 
-            tickets: list[Ticket] = []
+        tickets: list[Ticket] = [
+            Ticket(
+                event_id=event_id,
+                status_id=ticket_status.id,
+                ticket_type_id=ticket_type_id,
+            )
+            for _ in range(ticket_quantity)
+        ]
 
-            for seat in seats:
-                instance = Ticket(
-                    event_id=event_id,
-                    status=ticket_status,
-                    ticket_type_id=ticket_type_id,
-                    seat_id=seat.id,
-                )
+        db.add_all(tickets)
 
-                db.add(instance)
+        t_type.update_remaining_tickets(ticket_quantity)
 
-                tickets.append(instance)
-
-            instance.ticket_type.update_remaining_tickets(ticket_quantity)
-
-            db.commit()
-
-            return tickets
-
-        except Exception as e:
-            db.rollback()
-            raise e
+        return tickets
 
     @staticmethod
     def get_reservations(db: DbSession) -> list[ReservationResponseSchema]:
-        pass
+        result = db.scalars(
+            select(Reservation)
+        ).all()
 
-    @staticmethod
-    def get_reservation(
-        db: DbSession, reservation_id: uuid.UUID
-    ) -> ReservationResponseSchema:
-        pass
+        return [ReservationResponseSchema.model_validate(res) for res in result]
 
-    @staticmethod
-    def update_reservation(
-        db: DbSession, reservation_id: uuid.UUID, reservation: ReservationSchema
-    ) -> ReservationResponseSchema:
-        pass
+    # @staticmethod
+    # def get_reservation(
+    #     db: DbSession, reservation_id: uuid.UUID
+    # ) -> ReservationResponseSchema:
+    #     pass
+
+    # @staticmethod
+    # def update_reservation(
+    #     db: DbSession,reservation_id: uuid.UUID, reservation: ReservationSchema
+    # ) -> ReservationResponseSchema:
+    #     pass

@@ -66,9 +66,10 @@ class TicketType(AbstractBaseModel):
     # Relationships
     event: Mapped["Event"] = relationship(back_populates="ticket_types")
 
+    def set_remaining_ticketon_first_creation(self) -> None:
+        self.remaining_tickets = self.total_tickets
+
     def update_remaining_tickets(self, quantity: int) -> None:
-        if self.remaining_tickets < quantity:
-            raise ValueError("Not enough tickets left.")
         self.remaining_tickets -= quantity
 
     def __repr__(self) -> str:
@@ -109,11 +110,12 @@ class Ticket(AbstractBaseModel):
 
     __table_args__ = (UniqueConstraint("seat_id"),)
 
-    # TODO: May be it's better to remove this price attr since 
+    # TODO: May be it's better to remove this price attr since
     # TODO: it's in the ticket type
     # price: Mapped[int] = mapped_column(Integer(), nullable=False)
-
-    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    status_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), ForeignKey("data_lookups.id"), nullable=False
+    )
 
     event_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(), ForeignKey("events.id"), nullable=False
@@ -124,10 +126,12 @@ class Ticket(AbstractBaseModel):
     )
 
     seat_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(), ForeignKey("seats.id"), nullable=False
+        Uuid(), ForeignKey("seats.id"), nullable=True
     )
 
     # Relationships
+    status: Mapped["DataLookup"] = relationship()
+
     event: Mapped["Event"] = relationship()
 
     ticket_type: Mapped["TicketType"] = relationship()

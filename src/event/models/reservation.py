@@ -3,16 +3,16 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import ForeignKey, UniqueConstraint, Uuid, DateTime, String, Integer
 from src.account.models import User
-from src.core.models import AbstractBaseModel
+from src.core.models import AbstractBaseModel, DataLookup
 from src.event.models.event import Event, Seat, TicketType
 
 
 class Reservation(AbstractBaseModel):
     __tablename__ = "reservations"
 
-    __table_args__ = (
-        UniqueConstraint("event_id", "seat_id", name="unq_event_seat_reservation"),
-    )
+    # __table_args__ = (
+    #     UniqueConstraint("event_id", name="unq_event_seat_reservation"),
+    # )
 
     def default_expiry(self) -> datetime:
         """a helper method for calculating a default
@@ -23,7 +23,9 @@ class Reservation(AbstractBaseModel):
         """
         return datetime.now(timezone.utc) + timedelta(days=1)
 
-    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    status_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(), ForeignKey("data_lookups.id")
+    )
 
     ticket_quantity: Mapped[int] = mapped_column(Integer(), nullable=False)
 
@@ -47,9 +49,7 @@ class Reservation(AbstractBaseModel):
         Uuid(), ForeignKey("ticket_types.id"), nullable=False
     )
 
-    # seat_id: Mapped[uuid.UUID | None] = mapped_column(
-    #     Uuid(), ForeignKey("seats.id"), nullable=True
-    # )
+
 
     # Relationships
     user: Mapped["User"] = relationship()
@@ -58,7 +58,7 @@ class Reservation(AbstractBaseModel):
 
     ticket_type: Mapped["TicketType"] = relationship()
 
-    # seat: Mapped["Seat"] = relationship()
+    status: Mapped["DataLookup"] = relationship()
 
     @property
     def is_expired(self) -> bool:

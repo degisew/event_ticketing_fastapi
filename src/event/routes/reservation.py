@@ -12,4 +12,9 @@ router = APIRouter(prefix="/reservations")
 async def create_reservations(
     db: DbSession, payload: ReservationSchema
 ) -> ReservationResponseSchema:
-    return ReservationService.create_events(db, payload)
+    return ReservationService.create_reservations(db, payload)
+
+
+@router.get("/")
+async def get_Reservations(db: DbSession) -> list[ReservationResponseSchema]:
+    return ReservationService.get_reservations(db)
