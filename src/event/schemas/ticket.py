@@ -1,6 +1,6 @@
 import uuid
 from decimal import Decimal
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from src.core.schemas import BaseResponseSchema
 from src.event.schemas.event import EventSchema
 
@@ -12,12 +12,17 @@ class TicketTypeSchema(BaseModel):
     total_tickets: int
     event_id: uuid.UUID
 
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
+
 
 class TicketTypeResponseSchema(TicketTypeSchema, BaseResponseSchema):
     remaining_tickets: int
 
-    class Config:
-        from_attributes = True
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
 
 
 class TicketSchema(BaseModel):
@@ -27,6 +32,10 @@ class TicketSchema(BaseModel):
     ticket_type_id: uuid.UUID
     seat_id: uuid.UUID
 
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
+
 
 class TicketResponseSchema(TicketSchema, BaseResponseSchema):
     status: str
@@ -34,5 +43,6 @@ class TicketResponseSchema(TicketSchema, BaseResponseSchema):
     ticket: TicketSchema
     event: EventSchema
 
-    class Config:
-        from_attributes = True
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from src.core.schemas import BaseResponseSchema
 
 
@@ -14,7 +14,12 @@ class EventSchema(BaseModel):
     start_time: datetime
     end_time: datetime
 
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
+
 
 class EventResponseSchema(EventSchema, BaseResponseSchema):
-    class Config:
-        from_attributes = True
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }

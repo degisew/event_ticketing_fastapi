@@ -1,24 +1,27 @@
 import uuid
-from pydantic import BaseModel
-from src.account.schemas import UserSchema
+from pydantic import BaseModel, ConfigDict
+from src.account.schemas import UserResponseSchema
 from src.core.schemas import BaseResponseSchema
 from src.event.schemas.event import EventSchema
 from src.event.schemas.ticket import TicketTypeSchema
 
 
 class ReservationSchema(BaseModel):
-    status: str
     ticket_quantity: int
     user_id: uuid.UUID
     event_id: uuid.UUID
     ticket_type_id: uuid.UUID
 
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
 
-class ReservationResponseSchema(BaseResponseSchema):
-    status: str
-    user: UserSchema
+
+class ReservationResponseSchema(BaseModel, BaseResponseSchema):
+    user: UserResponseSchema
     event: EventSchema
-    tickt_type: TicketTypeSchema
+    ticket_type: TicketTypeSchema
 
-    class Config:
-        from_attributes = True
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
