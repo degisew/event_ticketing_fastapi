@@ -8,7 +8,7 @@ from alembic import context
 from src.core.models import Base
 
 from src.account import models as account_models
-from src.event import models as event_models
+from src.event.models import event as event_models, reservation as reservation_models
 from src.payment import models as payment_models
 
 # this is the Alembic Config object, which provides
