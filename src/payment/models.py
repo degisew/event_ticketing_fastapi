@@ -12,7 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from src.account.models import User
 from src.core.models import AbstractBaseModel
-from src.event.models import Ticket
+from src.event.models.event import Ticket
 
 
 class Transaction(AbstractBaseModel):
