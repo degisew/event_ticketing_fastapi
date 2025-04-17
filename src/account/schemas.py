@@ -26,6 +26,10 @@ class BaseUserSchema(BaseModel):
     }
 
 
+class UserInDBSchema(BaseUserSchema):
+    hashed_password: str
+
+
 class UserSchema(BaseUserSchema):
     password: str = Field(..., min_length=8, max_length=100)
     confirm_password: str = Field(..., min_length=8, max_length=100)

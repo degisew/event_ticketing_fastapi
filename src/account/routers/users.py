@@ -1,7 +1,8 @@
 import uuid
-from typing import List
-from fastapi import APIRouter, status
+from typing import Annotated, List
+from fastapi import APIRouter, Depends, status
 
+from src.account.models import User
 from src.account.schemas import (
     BaseUserSchema,
     UserSchema,
