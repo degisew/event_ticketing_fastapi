@@ -7,7 +7,7 @@ class TokenSchema(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: str | None = None
+    email: str | None = None
 
 
 class SignInSchema(BaseModel):

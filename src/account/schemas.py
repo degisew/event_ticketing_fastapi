@@ -1,3 +1,4 @@
+import uuid
 from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from src.core.schemas import BaseResponseSchema
 
@@ -18,8 +19,8 @@ class RoleResponseSchema(BaseRoleSchema, BaseResponseSchema):
 
 
 class BaseUserSchema(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=50)
+    role_id: uuid.UUID
 
     model_config: ConfigDict = {
         "from_attributes": True
@@ -27,7 +28,8 @@ class BaseUserSchema(BaseModel):
 
 
 class UserInDBSchema(BaseUserSchema):
-    hashed_password: str
+    id: uuid.UUID
+    password: str
 
 
 class UserSchema(BaseUserSchema):
