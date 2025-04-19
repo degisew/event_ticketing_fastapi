@@ -1,12 +1,10 @@
 import os
 import uuid
-from typing import Annotated, Any
-from fastapi.security import OAuth2PasswordBearer
+from typing import Any
 import jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy import select
-from src.auth.schemas import TokenData
 from src.core.db import DbSession
 from src.account.models import Role, User
 from src.core.exceptions import (
@@ -17,7 +15,6 @@ from src.core.exceptions import (
 from src.account.schemas import (
     BaseRoleSchema,
     RoleResponseSchema,
-    UserInDBSchema,
     UserResponseSchema,
     UserSchema,
 )
@@ -156,30 +153,24 @@ class UserService:
         return UserResponseSchema.model_validate(user_obj)
 
     @staticmethod
-    def get_user_by_email(db: DbSession, email: str) -> UserInDBSchema:
+    def get_user_by_email(db: DbSession, email: str) -> UserResponseSchema:
         user: User | None = db.scalar(select(User).where(User.email == email))
         if not user:
             raise NotFoundException("User Not Found.")
-        user_dict: dict[str, Any] = user.__dict__
 
-        return UserInDBSchema(**user_dict)
+        return UserResponseSchema.model_validate(user)
 
     @staticmethod
-    async def get_current_user(
-        db: DbSession, token
-    ) -> UserInDBSchema:
+    def get_current_user(db: DbSession, token) -> UserResponseSchema:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             email = payload.get("sub")
-            print("DAG", (payload, email))
             if not email:
                 raise AuthenticationErrorException()
-            token_data = TokenData(email=email)
         except jwt.InvalidTokenError:
             raise AuthenticationErrorException()
-        user: UserInDBSchema = UserService.get_user_by_email(
-            db=db, email=token_data.email
-        )
+        user: UserResponseSchema = UserService.get_user_by_email(db, email)
         if not user:
             raise AuthenticationErrorException()
+
         return user

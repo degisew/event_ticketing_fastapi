@@ -3,11 +3,10 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 
-from src.account.models import User
 from src.account.schemas import (
     BaseUserSchema,
     UserSchema,
-    UserResponseSchema
+    UserResponseSchema,
 )
 
 from src.account.services import UserService
@@ -18,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["Account"])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-oauth_token_scheme = Annotated[str, Depends(oauth2_scheme)]
+oauth_token_bearer = Annotated[str, Depends(oauth2_scheme)]
 
 
 @router.post(
@@ -41,15 +40,14 @@ async def get_users(db: DbSession) -> List[UserResponseSchema]:
     return UserService.get_users(db)
 
 
-# @router.get("/profile")
-# async def get_current_user_profile(db: DbSession):
-#     return UserService.get_current_user(db, oauth2_scheme)
+@router.get("/profile")
+async def get_current_user_profile(
+    db: DbSession, token: oauth_token_bearer
+) -> UserResponseSchema:
+    return UserService.get_current_user(db, token)
 
 
-@router.get(
-    "/{user_id}",
-    response_model=UserResponseSchema
-)
+@router.get("/{user_id}", response_model=UserResponseSchema)
 async def get_user(db: DbSession, user_id: uuid.UUID) -> UserResponseSchema:
     """
     Get user by ID.
