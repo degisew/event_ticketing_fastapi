@@ -35,7 +35,7 @@ def get_db() -> Generator[Session, Any, None]:
 DbSession = Annotated[Session, Depends(get_db)]
 
 
-# A cutom manager for atomic tranasaction
+# A cutom manager for atomic transaction
 @contextmanager
 def atomic_transaction(db: DbSession):
     try:
