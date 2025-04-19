@@ -10,7 +10,7 @@ from src.account.services import RoleService
 from src.core.db import DbSession
 
 
-router = APIRouter(prefix="/roles", tags=["account"])
+router = APIRouter(prefix="/roles", tags=["Account"])
 
 
 @router.get("/")

@@ -1,15 +1,32 @@
+import os
 import uuid
 from typing import Any
+import jwt
+from passlib.context import CryptContext
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from src.core.db import DbSession
 from src.account.models import Role, User
-from src.core.exceptions import NotFoundException
+from src.core.exceptions import (
+    AuthenticationErrorException,
+    InternalInvariantError,
+    NotFoundException,
+)
 from src.account.schemas import (
     BaseRoleSchema,
     RoleResponseSchema,
     UserResponseSchema,
     UserSchema,
 )
+
+
+bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+SECRET_KEY: str = os.getenv("SECRET_KEY", default="")
+ALGORITHM: str = os.getenv("ALGORITHM", default="")
+
+if not SECRET_KEY or not ALGORITHM:
+    raise InternalInvariantError("Missing SECRET_KEY or ALGORITHM in .env file.")
 
 
 class RoleService:
@@ -62,19 +79,41 @@ class RoleService:
 
 class UserService:
     @staticmethod
+    def get_password_hash(password: str) -> str:
+        return bcrypt_context.hash(password)
+
+    @staticmethod
     def create_user(db: DbSession, validated_data: UserSchema) -> UserResponseSchema:
-        serialized_data: dict[str, Any] = validated_data.model_dump(
-            exclude_unset=True, exclude={"confirm_password"}
-        )
-        instance = User(**serialized_data)
+        try:
+            serialized_data: dict[str, Any] = validated_data.model_dump(
+                exclude_unset=True, exclude={"confirm_password"}
+            )
+            password = serialized_data.pop("password")
 
-        db.add(instance)
+            if password != validated_data.confirm_password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Passwords do not match.",
+                )
 
-        db.commit()
+            hashed_pass = UserService.get_password_hash(password)
 
-        db.refresh(instance)
+            if not hashed_pass:
+                raise InternalInvariantError("Password Hashing Failed.")
 
-        return UserResponseSchema.model_validate(instance)
+            serialized_data.update(password=hashed_pass)
+
+            instance = User(**serialized_data)
+
+            db.add(instance)
+
+            db.commit()
+
+            db.refresh(instance)
+
+            return UserResponseSchema.model_validate(instance)
+        except Exception as e:
+            raise e
 
     @staticmethod
     def get_users(db: DbSession) -> list[UserResponseSchema]:
@@ -112,3 +151,26 @@ class UserService:
         db.refresh(user_obj)
 
         return UserResponseSchema.model_validate(user_obj)
+
+    @staticmethod
+    def get_user_by_email(db: DbSession, email: str) -> UserResponseSchema:
+        user: User | None = db.scalar(select(User).where(User.email == email))
+        if not user:
+            raise NotFoundException("User Not Found.")
+
+        return UserResponseSchema.model_validate(user)
+
+    @staticmethod
+    def get_current_user(db: DbSession, token) -> UserResponseSchema:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            email = payload.get("sub")
+            if not email:
+                raise AuthenticationErrorException()
+        except jwt.InvalidTokenError:
+            raise AuthenticationErrorException()
+        user: UserResponseSchema = UserService.get_user_by_email(db, email)
+        if not user:
+            raise AuthenticationErrorException()
+
+        return user

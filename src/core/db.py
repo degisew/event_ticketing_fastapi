@@ -1,5 +1,6 @@
 import os
 from typing import Annotated, Any, Generator
+from contextlib import contextmanager
 from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy import Engine, create_engine
@@ -33,5 +34,13 @@ def get_db() -> Generator[Session, Any, None]:
 
 DbSession = Annotated[Session, Depends(get_db)]
 
-# def create_db_and_tables() -> None:
-#     Base.metadata.create_all(engine)
+
+# A cutom manager for atomic transaction
+@contextmanager
+def atomic_transaction(db: DbSession):
+    try:
+        yield
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise

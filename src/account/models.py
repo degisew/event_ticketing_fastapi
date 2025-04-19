@@ -28,9 +28,15 @@ class User(AbstractBaseModel):
 
     __tablename__ = "users"
 
+    __table_args__ = (
+        UniqueConstraint("role_id", "id"),
+    )
+
     username: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
 
     email: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+
+    role_id: Mapped[uuid.UUID] = mapped_column(Uuid(),  ForeignKey("roles.id"))
 
     password: Mapped[str] = mapped_column(String(100), nullable=False)
 
@@ -39,6 +45,9 @@ class User(AbstractBaseModel):
     is_superuser: Mapped[bool] = mapped_column(Boolean(), default=False)
 
     is_profile_complete: Mapped[bool] = mapped_column(Boolean(), default=False)
+
+    # Relationships
+    role: Mapped["Role"] = relationship(single_parent=True)
 
     profile: Mapped["UserProfile"] = relationship(back_populates="user")
 
@@ -59,11 +68,12 @@ class UserProfile(AbstractBaseModel):
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("users.id"))
 
-    user: Mapped["User"] = relationship(back_populates="profile", single_parent=True)
-
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
 
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship(back_populates="profile", single_parent=True)
 
     def __repr__(self) -> str:
         return f"{self.first_name} {self.last_name}"
