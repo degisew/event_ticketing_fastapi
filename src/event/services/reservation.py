@@ -124,8 +124,14 @@ class ReservationService:
         )
         if not ticket_status:
             raise InternalInvariantError("TicketStatuses.ACTIVE DataLookup not found.")
+        # * trigger db row-locking using sqlalchemy with_for_update()
+        # * to prevent race codition that leads to overbooking
+        t_type: TicketType | None = db.execute(
+            select(TicketType)
+            .where(TicketType.id == ticket_type_id)
+            .with_for_update()
+        ).scalar_one_or_none()
 
-        t_type: TicketType | None = db.get(TicketType, ticket_type_id)
         if not t_type:
             raise NotFoundException("Ticket type not found.")
 
