@@ -12,14 +12,14 @@ from sqlalchemy import (
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from src.account.models import User
 from src.core.models import AbstractBaseModel
-from src.event.models.event import Ticket
+from src.event.models.reservation import Reservation
 
 
 class Transaction(AbstractBaseModel):
     __tablename__: str = "transactions"
 
     __table_args__ = (
-        UniqueConstraint("ticket_id", "transaction_date"),)
+        UniqueConstraint("transaction_date"),)
 
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
@@ -35,14 +35,14 @@ class Transaction(AbstractBaseModel):
         Uuid(), ForeignKey("users.id"), nullable=False
     )
 
-    ticket_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(), ForeignKey("tickets.id"), nullable=False
+    reservation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), ForeignKey("reservations.id"), nullable=False
     )
 
     # Relationships
     user: Mapped["User"] = relationship()
 
-    ticket: Mapped["Ticket"] = relationship(single_parent=True)
+    reservation: Mapped["Reservation"] = relationship(single_parent=True)
 
     def __repr__(self) -> str:
         return f"Transaction({self.id}) - {self.payment_status} - ${self.amount}"

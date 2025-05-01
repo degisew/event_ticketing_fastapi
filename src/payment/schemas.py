@@ -1,1 +1,32 @@
-# your Pydantic schemas here
+from datetime import datetime
+from uuid import UUID
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict
+
+from src.core.schemas import BaseResponseSchema, DataLookupSchema
+from src.event.schemas.reservation import ReservationSchema
+
+
+class PurchaseRequestSchema(BaseModel):
+    user_id: UUID
+    reservation_id: UUID
+    payment_method: str
+    amount: Decimal
+
+
+class PurchaseResponseSchema(BaseResponseSchema, PurchaseRequestSchema):
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
+
+
+class TransactionResponseSchema(BaseModel, BaseResponseSchema):
+    transaction_date: datetime
+    amount: Decimal
+    reservation: ReservationSchema
+    payment_method: str
+    payment_status: DataLookupSchema
+
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }

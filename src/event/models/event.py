@@ -129,6 +129,9 @@ class Ticket(AbstractBaseModel):
         Uuid(), ForeignKey("seats.id"), nullable=True
     )
 
+    reservation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), ForeignKey("reservations.id"), nullable=False
+    )
     # Relationships
     status: Mapped["DataLookup"] = relationship()
 

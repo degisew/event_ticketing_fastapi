@@ -1,10 +1,10 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import ForeignKey, UniqueConstraint, Uuid, DateTime, String, Integer
+from sqlalchemy import ForeignKey, Uuid, DateTime, Integer
 from src.account.models import User
 from src.core.models import AbstractBaseModel, DataLookup
-from src.event.models.event import Event, Seat, TicketType
+from src.event.models.event import Event, TicketType
 
 
 class Reservation(AbstractBaseModel):
@@ -21,7 +21,7 @@ class Reservation(AbstractBaseModel):
         Returns:
             datetime
         """
-        return datetime.now(timezone.utc) + timedelta(days=1)
+        return datetime.now(timezone.utc) + timedelta(minutes=15)
 
     status_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(), ForeignKey("data_lookups.id")
@@ -49,8 +49,6 @@ class Reservation(AbstractBaseModel):
         Uuid(), ForeignKey("ticket_types.id"), nullable=False
     )
 
-
-
     # Relationships
     user: Mapped["User"] = relationship()
 
@@ -58,11 +56,16 @@ class Reservation(AbstractBaseModel):
 
     ticket_type: Mapped["TicketType"] = relationship()
 
+    tickets: Mapped["Reservation"] = relationship(back_populates="reservation")
+
     status: Mapped["DataLookup"] = relationship()
 
     @property
     def is_expired(self) -> bool:
         return datetime.now(timezone.utc) > self.expires_at
+
+    def mark_as_completed(self, reservation_status) -> None:
+        self.status = reservation_status
 
     def __repr__(self) -> str:
         return f"Reservation({self.id}) - {self.status} - Expires: {self.expires_at.isoformat()}"

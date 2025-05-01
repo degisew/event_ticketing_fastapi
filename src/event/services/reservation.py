@@ -9,13 +9,11 @@ from src.core.exceptions import (
     NotFoundException,
 )
 from src.core.models import DataLookup
+from src.core.repositories import DataLookupRepository
 from src.event.models.event import Ticket, TicketType
 from src.event.models.reservation import Reservation
 from src.event.schemas.reservation import ReservationResponseSchema, ReservationSchema
-from src.event.enums import (
-    ReservationStatuses,
-    TicketStatuses
-)
+from src.event.enums import RESERVATION_STATUS_TYPE, ReservationStatuses, TicketStatuses
 
 
 class ReservationService:
@@ -29,14 +27,18 @@ class ReservationService:
         event_id = serialized_data.get("event_id")
         ticket_quantity = serialized_data.get("ticket_quantity")
 
-        reservation_confirmed_status = db.scalar(
-            select(DataLookup).where(
-                DataLookup.type == ReservationStatuses.TYPE.value,
-                DataLookup.value == ReservationStatuses.CONFIRMED.value,
+        reservation_confirmed_status: DataLookup | None = (
+            DataLookupRepository.get_status_by_type(
+                db,
+                RESERVATION_STATUS_TYPE,
+                ReservationStatuses.CONFIRMED.value,
             )
         )
+
         if not reservation_confirmed_status:
-            raise InternalInvariantError("ReservationStatuses.CONFIRMED DataLookup not found.")
+            raise InternalInvariantError(
+                "ReservationStatuses.CONFIRMED DataLookup not found."
+            )
 
         with atomic_transaction(db):
             ReservationService.create_tickets(
@@ -127,9 +129,7 @@ class ReservationService:
         # * trigger db row-locking using sqlalchemy with_for_update()
         # * to prevent race codition that leads to overbooking
         t_type: TicketType | None = db.execute(
-            select(TicketType)
-            .where(TicketType.id == ticket_type_id)
-            .with_for_update()
+            select(TicketType).where(TicketType.id == ticket_type_id).with_for_update()
         ).scalar_one_or_none()
 
         if not t_type:
@@ -158,9 +158,7 @@ class ReservationService:
 
     @staticmethod
     def get_reservations(db: DbSession) -> list[ReservationResponseSchema]:
-        result = db.scalars(
-            select(Reservation)
-        ).all()
+        result = db.scalars(select(Reservation)).all()
 
         return [ReservationResponseSchema.model_validate(res) for res in result]
 
