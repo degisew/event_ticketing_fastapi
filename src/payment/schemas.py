@@ -22,6 +22,7 @@ class PurchaseResponseSchema(BaseResponseSchema, PurchaseRequestSchema):
 
 class TransactionResponseSchema(BaseModel, BaseResponseSchema):
     transaction_date: datetime
+    # TODO: consider doing this amount calculation in the backend
     amount: Decimal
     reservation: ReservationSchema
     payment_method: str
