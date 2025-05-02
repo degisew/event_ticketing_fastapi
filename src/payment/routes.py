@@ -19,5 +19,6 @@ async def purchase_tickets(
     return PaymentService.purchase_tickets(db, payload)
 
 
+@router.get("/")
 async def get_transactions(db: DbSession) -> list[TransactionResponseSchema]:
     return PaymentService.get_transactions(db)

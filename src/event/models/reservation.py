@@ -4,7 +4,7 @@ from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import ForeignKey, Uuid, DateTime, Integer
 from src.account.models import User
 from src.core.models import AbstractBaseModel, DataLookup
-from src.event.models.event import Event, TicketType
+from src.event.models.event import Event, Ticket, TicketType
 
 
 class Reservation(AbstractBaseModel):
@@ -56,7 +56,7 @@ class Reservation(AbstractBaseModel):
 
     ticket_type: Mapped["TicketType"] = relationship()
 
-    tickets: Mapped["Reservation"] = relationship(back_populates="reservation")
+    tickets: Mapped["Ticket"] = relationship()
 
     status: Mapped["DataLookup"] = relationship()
 
