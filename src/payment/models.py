@@ -11,7 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from src.account.models import User
-from src.core.models import AbstractBaseModel
+from src.core.models import AbstractBaseModel, DataLookup
 from src.event.models.reservation import Reservation
 
 
@@ -23,7 +23,9 @@ class Transaction(AbstractBaseModel):
 
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
-    payment_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    payment_status_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(), ForeignKey("data_lookups.id")
+    )
 
     payment_method: Mapped[str] = mapped_column(String(30), nullable=False)
 
@@ -41,6 +43,8 @@ class Transaction(AbstractBaseModel):
 
     # Relationships
     user: Mapped["User"] = relationship()
+
+    payment_status: Mapped["DataLookup"] = relationship()
 
     reservation: Mapped["Reservation"] = relationship(single_parent=True)
 

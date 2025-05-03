@@ -3,7 +3,7 @@ from uuid import UUID
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
-from src.core.schemas import BaseResponseSchema, DataLookupSchema
+from src.core.schemas import BaseResponseSchema, DataLookupResponseSchema
 from src.event.schemas.reservation import ReservationSchema
 
 
@@ -26,7 +26,7 @@ class TransactionResponseSchema(BaseModel, BaseResponseSchema):
     amount: Decimal
     reservation: ReservationSchema
     payment_method: str
-    payment_status: DataLookupSchema
+    payment_status: DataLookupResponseSchema
 
     model_config: ConfigDict = {
         "from_attributes": True

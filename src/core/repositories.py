@@ -1,7 +1,6 @@
-from sqlalchemy import select, update
+from sqlalchemy import select
 from src.core.db import DbSession
 from src.core.models import DataLookup
-from src.event.enums import ReservationStatuses, TicketStatuses
 
 
 # TODO: CAche them in memory since this are static.
@@ -15,7 +14,11 @@ class DataLookupRepository:
     """
 
     @staticmethod
-    def get_status_by_type(db: DbSession, type_: str, value: str) -> DataLookup | None:
+    def get_status_by_type(
+        db: DbSession,
+        type_: str,
+        value: str
+    ) -> DataLookup | None:
         """A method that fetches a specific DataLookup instance by a given type.
 
         Args:

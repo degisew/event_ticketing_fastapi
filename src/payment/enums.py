@@ -6,4 +6,4 @@ class TransactionPaymentStatuses(Enum):
     REFUNDED = "transaction_payment_status_refunded"
 
 
-TRANSACTION_STATUS_TYPE = "transaction_payment_status_type"
+TRANSACTION_PAYMENT_STATUS_TYPE = "transaction_payment_status_type"
