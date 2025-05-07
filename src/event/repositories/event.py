@@ -116,15 +116,3 @@ class TicketTypeRepository:
         except Exception as e:
             print(f"Error {str(e)}")
             raise e
-
-        # TODO: Make ORM style operation. not pythonic like above.
-        # try:
-        #     return db.execute(
-        #         update(TicketType)
-        #         .where(TicketType.id == ticket_type_id)
-        #         .values(**serialized_data)
-        #     )
-
-        # except Exception as e:
-        #     print(str(f"Error. {e}"))
-        #     raise e
