@@ -1,7 +1,5 @@
-from typing import Any
 import uuid
-
-from sqlalchemy import select
+from typing import Any
 from src.core.db import DbSession, atomic_transaction
 from src.core.exceptions import (
     InternalInvariantError,
@@ -9,10 +7,18 @@ from src.core.exceptions import (
     NotFoundException,
 )
 from src.core.models import DataLookup
+from src.core.repositories import DataLookupRepository
 from src.event.models.event import Ticket, TicketType
-from src.event.models.reservation import Reservation
-from src.event.schemas.reservation import ReservationResponseSchema, ReservationSchema
+from src.event.repositories.event import TicketTypeRepository
+from src.event.repositories.reservation import ReservationRepository
+from src.event.repositories.ticket import TicketRepository
+from src.event.schemas.reservation import (
+    ReservationResponseSchema,
+    ReservationSchema
+)
 from src.event.enums import (
+    RESERVATION_STATUS_TYPE,
+    TICKET_STATUS_TYPE,
     ReservationStatuses,
     TicketStatuses
 )
@@ -23,34 +29,34 @@ class ReservationService:
     def create_reservations(
         db: DbSession, validated_data: ReservationSchema
     ) -> ReservationResponseSchema:
-        serialized_data: dict[str, Any] = validated_data.model_dump(exclude_unset=True)
+        serialized_data: dict[str, Any] = validated_data.model_dump(
+            exclude_unset=True)
 
         ticket_type_id = serialized_data.get("ticket_type_id")
         event_id = serialized_data.get("event_id")
         ticket_quantity = serialized_data.get("ticket_quantity")
 
-        reservation_confirmed_status = db.scalar(
-            select(DataLookup).where(
-                DataLookup.type == ReservationStatuses.TYPE.value,
-                DataLookup.value == ReservationStatuses.CONFIRMED.value,
+        reservation_confirmed_status: DataLookup | None = (
+            DataLookupRepository.get_status_by_type(
+                db,
+                RESERVATION_STATUS_TYPE,
+                ReservationStatuses.CONFIRMED.value,
             )
         )
+
         if not reservation_confirmed_status:
-            raise InternalInvariantError("ReservationStatuses.CONFIRMED DataLookup not found.")
+            raise InternalInvariantError(
+                "ReservationStatuses.CONFIRMED DataLookup not found."
+            )
+
+        serialized_data["status"] = reservation_confirmed_status
 
         with atomic_transaction(db):
+            reservation = ReservationRepository.create(db, serialized_data)
+
             ReservationService.create_tickets(
-                db, event_id, ticket_type_id, ticket_quantity
+                db, reservation.id, event_id, ticket_type_id, ticket_quantity
             )
-
-            reservation = Reservation(
-                **serialized_data,
-                status=reservation_confirmed_status,
-            )
-
-            db.add(reservation)
-
-            db.flush()
 
             db.refresh(reservation)
 
@@ -112,45 +118,44 @@ class ReservationService:
     @staticmethod
     def create_tickets(
         db: DbSession,
+        reservation_id: uuid.UUID,
         event_id: uuid.UUID,
         ticket_type_id: uuid.UUID,
         ticket_quantity: int,
     ) -> list[Ticket]:
-        ticket_status: DataLookup | None = db.scalar(
-            select(DataLookup).where(
-                DataLookup.type == TicketStatuses.TYPE.value,
-                DataLookup.value == TicketStatuses.ACTIVE.value,
-            )
+        ticket_status: DataLookup | None = DataLookupRepository.get_status_by_type(
+            db,
+            TICKET_STATUS_TYPE,
+            TicketStatuses.ACTIVE.value,
         )
         if not ticket_status:
-            raise InternalInvariantError("TicketStatuses.ACTIVE DataLookup not found.")
-        # * trigger db row-locking using sqlalchemy with_for_update()
-        # * to prevent race codition that leads to overbooking
-        t_type: TicketType | None = db.execute(
-            select(TicketType)
-            .where(TicketType.id == ticket_type_id)
-            .with_for_update()
-        ).scalar_one_or_none()
+            raise InternalInvariantError(
+                "TicketStatuses.ACTIVE DataLookup not found.")
+
+        t_type: TicketType | None = TicketTypeRepository.get_ticket_type(
+            db=db,
+            ticket_type_id=ticket_type_id,
+            locking_needed=True  # db level row-locking to avoid race condition.
+        )
 
         if not t_type:
             raise NotFoundException("Ticket type not found.")
 
         remaining_tickets: int = t_type.remaining_tickets
+
         if remaining_tickets < ticket_quantity:
             raise NoEnoughTicketException(
                 f"No enough tickets available. Only {remaining_tickets} left."
             )
 
-        tickets: list[Ticket] = [
-            Ticket(
-                event_id=event_id,
-                status_id=ticket_status.id,
-                ticket_type_id=ticket_type_id,
-            )
-            for _ in range(ticket_quantity)
-        ]
-
-        db.add_all(tickets)
+        tickets: list[Ticket] = TicketRepository.create(
+            db,
+            event_id,
+            reservation_id,
+            ticket_quantity,
+            ticket_status.id,
+            ticket_type_id
+        )
 
         t_type.update_remaining_tickets(ticket_quantity)
 
@@ -158,9 +163,7 @@ class ReservationService:
 
     @staticmethod
     def get_reservations(db: DbSession) -> list[ReservationResponseSchema]:
-        result = db.scalars(
-            select(Reservation)
-        ).all()
+        result = ReservationRepository.get_reservations(db)
 
         return [ReservationResponseSchema.model_validate(res) for res in result]
 
