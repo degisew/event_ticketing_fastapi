@@ -5,6 +5,7 @@ import jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from src.account.repositories import UserRepository
 from src.core.db import DbSession
 from src.account.models import Role, User
 from src.core.exceptions import (
@@ -103,13 +104,7 @@ class UserService:
 
             serialized_data.update(password=hashed_pass)
 
-            instance = User(**serialized_data)
-
-            db.add(instance)
-
-            db.commit()
-
-            db.refresh(instance)
+            instance: User = UserRepository.create_user(db, serialized_data)
 
             return UserResponseSchema.model_validate(instance)
         except Exception as e:
@@ -117,17 +112,13 @@ class UserService:
 
     @staticmethod
     def get_users(db: DbSession) -> list[UserResponseSchema]:
-        try:
-            stmt = select(User)
-            result = db.execute(stmt).scalars().all()
+        users = UserRepository.get_users(db)
 
-            return [UserResponseSchema.model_validate(user) for user in result]
-        except Exception as e:
-            raise e
+        return [UserResponseSchema.model_validate(user) for user in users]
 
     @staticmethod
     def get_user(db: DbSession, user_id: uuid.UUID) -> UserResponseSchema:
-        user: User | None = db.get(User, user_id)
+        user: User | None = UserRepository.get_user_by_id(db, user_id)
 
         if not user:
             raise NotFoundException("user with a given id not found.")
