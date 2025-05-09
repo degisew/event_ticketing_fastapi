@@ -31,6 +31,10 @@ class EventService:
     @staticmethod
     def get_event(db: DbSession, event_id: uuid.UUID) -> EventResponseSchema:
         event: Event | None = EventRepository.get_event(db, event_id)
+
+        if not event:
+            raise NotFoundException("Event with a given id not found.")
+
         return EventResponseSchema.model_validate(event)
 
     @staticmethod

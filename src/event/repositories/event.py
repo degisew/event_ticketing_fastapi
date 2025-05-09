@@ -1,8 +1,7 @@
 from typing import Any
 from uuid import UUID
-from sqlalchemy import ScalarResult, select, update
+from sqlalchemy import ScalarResult, select
 from src.core.db import DbSession
-from src.core.exceptions import NotFoundException
 from src.event.models.event import Event, TicketType
 
 
@@ -29,11 +28,7 @@ class EventRepository:
 
     @staticmethod
     def get_event(db: DbSession, event_id: UUID) -> Event | None:
-        event = db.get(Event, event_id)
-
-        if not event:
-            raise NotFoundException("Event with a given id not found.")
-
+        event: Event | None = db.get(Event, event_id)
         return event
 
     @staticmethod
