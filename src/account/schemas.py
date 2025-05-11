@@ -15,6 +15,8 @@ class RoleResponseSchema(BaseRoleSchema, BaseResponseSchema):
 
 
 class BaseUserSchema(BaseModel):
+    # TODO: Remove username once it's removed from the model
+    username: str
     email: EmailStr = Field(..., min_length=5, max_length=50)
 
     model_config: ConfigDict = {"from_attributes": True}

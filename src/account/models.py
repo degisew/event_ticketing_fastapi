@@ -31,7 +31,7 @@ class User(AbstractBaseModel):
     __table_args__ = (
         UniqueConstraint("role_id", "id"),
     )
-
+    # TODO: Remove username
     username: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
 
     email: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)

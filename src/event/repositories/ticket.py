@@ -1,5 +1,6 @@
 import uuid
-from sqlalchemy import update
+from sqlalchemy import select, update
+# from src.core.db import DbSession
 from src.core.db import DbSession
 from src.event.models.event import Ticket
 
@@ -44,3 +45,10 @@ class TicketRepository:
         except Exception as e:
             print(str(f"DAG Error. {e}"))
             raise e
+
+    @staticmethod
+    def get_tickets_by_reservation(reservation_id: uuid.UUID, db: DbSession):
+        return list(db.scalars(
+            select(Ticket)
+            .where(Ticket.reservation_id == reservation_id)
+        ))

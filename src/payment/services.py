@@ -1,6 +1,5 @@
 import uuid
 from typing import Any
-from sqlalchemy import ScalarResult
 from src.core.db import DbSession, atomic_transaction
 from src.core.exceptions import InternalInvariantError
 from src.core.models import DataLookup
@@ -36,6 +35,7 @@ class PaymentService:
 
         reservation_id: uuid.UUID | None = serialized_data.get(
             "reservation_id")
+
         payment_status: DataLookup | None = DataLookupRepository.get_status_by_type(
             db,
             TRANSACTION_PAYMENT_STATUS_TYPE,
@@ -85,7 +85,7 @@ class PaymentService:
 
             db.refresh(instance)
 
-        return PurchaseResponseSchema.model_validate(instance)
+            return PurchaseResponseSchema.model_validate(instance)
 
     @staticmethod
     def get_transactions(db: DbSession) -> list[TransactionResponseSchema]:

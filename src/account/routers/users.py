@@ -15,7 +15,7 @@ from src.core.db import DbSession
 
 router = APIRouter(prefix="/users", tags=["Account"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 oauth_token_bearer = Annotated[str, Depends(oauth2_scheme)]
 

@@ -5,8 +5,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 from dotenv import load_dotenv
 from passlib.context import CryptContext
-from sqlalchemy import select
 from src.account.models import User
+from src.account.repositories import UserRepository
 from src.account.schemas import UserResponseSchema
 from src.core.db import DbSession
 from src.core.exceptions import InternalInvariantError
@@ -19,7 +19,9 @@ SECRET_KEY: str = os.getenv("SECRET_KEY", default="")
 ALGORITHM: str = os.getenv("ALGORITHM", default="")
 
 if not SECRET_KEY or not ALGORITHM:
-    raise InternalInvariantError("Missing SECRET_KEY or ALGORITHM in .env file.")
+    raise InternalInvariantError(
+        "Missing SECRET_KEY or ALGORITHM in .env file."
+    )
 
 
 class AuthService:
@@ -27,21 +29,21 @@ class AuthService:
     def verify_password(plain_password, hashed_password) -> bool:
         return pwd_context.verify(plain_password, hashed_password)
 
-    @staticmethod
-    def get_user_by_email(db: DbSession, email: str) -> User | None:
-        user: User | None = db.scalar(
-            select(User).where(
-                User.email == email
-            )
-        )
+    # @staticmethod
+    # def get_user_by_email(db: DbSession, email: str) -> User | None:
+    #     user: User | None = db.scalar(
+    #         select(User).where(
+    #             User.email == email
+    #         )
+    #     )
 
-        return user
+    #     return user
 
     @staticmethod
     def authenticate_user(
         db: DbSession, email: str, password: str
     ) -> UserResponseSchema | Literal[False]:
-        user: User | None = AuthService.get_user_by_email(db, email)
+        user: User | None = UserRepository.get_user_by_email(db, email)
         if not user or not AuthService.verify_password(
             password,
             user.password
@@ -51,7 +53,7 @@ class AuthService:
 
     @staticmethod
     def create_access_token(
-        email: str, user_id: uuid.UUID, expires_delta: timedelta | None = None
+        user_id: uuid.UUID, expires_delta: timedelta | None = None
     ) -> str:
         if expires_delta:
             expire: datetime = datetime.now(timezone.utc) + expires_delta
@@ -59,8 +61,7 @@ class AuthService:
             expire = datetime.now(timezone.utc) + timedelta(minutes=15)
 
         to_encode: dict[str, Any] = {
-            "sub": email,
-            "id": str(user_id),
+            "user_id": str(user_id),
             "exp": expire,
         }
 
