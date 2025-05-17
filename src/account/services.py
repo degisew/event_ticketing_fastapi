@@ -4,8 +4,8 @@ from typing import Any
 import jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
-from sqlalchemy import select
-from src.account.repositories import UserRepository
+from src.account.repositories import RoleRepository, UserRepository
+from src.core.logger import logger
 from src.core.db import DbSession
 from src.account.models import Role, User
 from src.core.exceptions import (
@@ -36,29 +36,30 @@ class RoleService:
     def create_role(
         db: DbSession, validated_data: BaseRoleSchema
     ) -> RoleResponseSchema:
-        serialized_data: dict[str, Any] = validated_data.model_dump(
-            exclude_unset=True)
-        role = Role(**serialized_data)
+        try:
+            serialized_data: dict[str, Any] = validated_data.model_dump(
+                exclude_unset=True)
+            role = RoleRepository.create_role(db, serialized_data)
 
-        db.add(role)
-        db.commit()
-        db.refresh(role)
-
-        return RoleResponseSchema.model_validate(role)
+            return RoleResponseSchema.model_validate(role)
+        except Exception as e:
+            logger.error(f"Error: {str(e)}")
+            raise
 
     @staticmethod
     def get_roles(db: DbSession) -> list[RoleResponseSchema]:
         try:
-            statement = select(Role)
-            result = db.execute(statement).scalars().all()
+            result = RoleRepository.get_roles(db)
             return [RoleResponseSchema.model_validate(role) for role in result]
         except Exception as e:
-            raise e
+            logger.exception(f"Error: {str(e)}")
+            raise
 
     @staticmethod
     def get_role(db: DbSession, role_id: uuid.UUID) -> RoleResponseSchema:
-        role: Role | None = db.get(Role, role_id)
+        role: Role | None = RoleRepository.get_role_by_id(db, role_id)
         if not role:
+            logger.info("Role with the given id not found.")
             raise NotFoundException("Role with the given id not found.")
         return RoleResponseSchema.model_validate(role)
 
@@ -67,15 +68,12 @@ class RoleService:
         db: DbSession, role_id: uuid.UUID, role: BaseRoleSchema
     ) -> RoleResponseSchema:
         serialized_data: dict[str, Any] = role.model_dump(exclude_unset=True)
-        role_obj: Role | None = db.get(Role, role_id)
+        role_obj: Role | None = RoleRepository.get_role_by_id(db, role_id)
         if role_obj is None:
+            logger.info("Role with the given id not found.")
             raise NotFoundException("Role with the given id not found.")
 
-        for key, val in serialized_data.items():
-            setattr(role_obj, key, val)
-
-        db.commit()
-        db.refresh(role_obj)
+        RoleRepository.update_role(db, role_obj, serialized_data)
 
         return RoleResponseSchema.model_validate(role_obj)
 
@@ -112,8 +110,9 @@ class UserService:
             instance: User = UserRepository.create_user(db, serialized_data)
 
             return UserResponseSchema.model_validate(instance)
-        except Exception as e:
-            raise e
+        except Exception:
+            logger.error("Unhandled error occurred during user creation")
+            raise
 
     @staticmethod
     def get_users(db: DbSession) -> list[UserResponseSchema]:
@@ -126,6 +125,7 @@ class UserService:
         user: User | None = UserRepository.get_user_by_id(db, user_id)
 
         if not user:
+            logger.info(f"user with id {user_id} not found.")
             raise NotFoundException("user with a given id not found.")
 
         return UserResponseSchema.model_validate(user)
@@ -145,14 +145,6 @@ class UserService:
             db, user_obj, serialized_data)
 
         return UserResponseSchema.model_validate(updated_user)
-
-    # @staticmethod
-    # def get_user_by_email(db: DbSession, email: str) -> UserResponseSchema:
-    #     user: User | None = UserRepository.get_user_by_email(db, email)
-    #     if not user:
-    #         raise NotFoundException("User Not Found.")
-
-    #     return UserResponseSchema.model_validate(user)
 
     @staticmethod
     def get_current_user(db: DbSession, token) -> UserResponseSchema:

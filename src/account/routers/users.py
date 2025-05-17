@@ -1,6 +1,6 @@
 import uuid
 from typing import Annotated, List
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
 from src.account.schemas import (
@@ -11,7 +11,6 @@ from src.account.schemas import (
 
 from src.account.services import UserService
 from src.core.db import DbSession
-
 
 router = APIRouter(prefix="/users", tags=["Account"])
 

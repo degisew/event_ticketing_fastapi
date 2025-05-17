@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import select, update
-# from src.core.db import DbSession
 from src.core.db import DbSession
+from src.core.logger import logger
 from src.event.models.event import Ticket
 
 
@@ -43,7 +43,7 @@ class TicketRepository:
                 .values(status_id=status_id)
             )
         except Exception as e:
-            print(str(f"DAG Error. {e}"))
+            logger.exception(str(f"Error: {e}"))
             raise e
 
     @staticmethod

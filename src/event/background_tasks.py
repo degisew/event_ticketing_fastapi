@@ -7,6 +7,7 @@ from fastapi import UploadFile
 from src.account.models import User
 from src.account.repositories import UserRepository
 from src.core.db import SessionLocal
+from src.core.logger import logger
 from src.core.exceptions import NotFoundException
 from src.event.repositories.ticket import TicketRepository
 from src.event.utils import generate_qr_code
@@ -89,5 +90,5 @@ async def send_email(user_id: UUID, reservation_id) -> dict[str, str]:
     fm = FastMail(conf)
 
     await fm.send_message(message)
-    print(f"email has been sent to {recipient}")
+    logger.info(f"email has been sent to {recipient}")
     return {"message": "email has been sent"}

@@ -2,6 +2,7 @@ from typing import Any
 from uuid import UUID
 from sqlalchemy import ScalarResult, select
 from src.core.db import DbSession
+from src.core.logger import logger
 from src.event.models.event import Event, TicketType
 
 
@@ -24,6 +25,7 @@ class EventRepository:
                 select(Event)
             )
         except Exception as e:
+            logger.exception(f"Error: {str(e)}")
             raise e
 
     @staticmethod
@@ -68,7 +70,7 @@ class TicketTypeRepository:
 
             return result
         except Exception as e:
-            print(f"Error {str(e)}")
+            logger.exception(f"Error: {str(e)}")
             raise e
 
     @staticmethod
@@ -109,5 +111,5 @@ class TicketTypeRepository:
 
             return ticket_type_obj
         except Exception as e:
-            print(f"Error {str(e)}")
+            logger.exception(f"Error {str(e)}")
             raise e

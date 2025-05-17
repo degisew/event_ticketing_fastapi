@@ -1,5 +1,6 @@
 from typing import Callable
 from fastapi import Request, status
+from src.core.logger import logger
 from fastapi.responses import JSONResponse
 
 
@@ -67,7 +68,7 @@ def register_global_exceptions(app: Callable) -> None:
     ) -> JSONResponse:
         # TODO: To see the technical related error, you should do that
         # TODO: in logger since internal errors are our mistakes.
-        print(f"##### {exc.message}")
+        logger.info(f"{exc.message}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Internal server error."},

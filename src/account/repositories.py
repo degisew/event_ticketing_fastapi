@@ -1,8 +1,48 @@
 from uuid import UUID
 from typing import Any
 from sqlalchemy import select
-from src.account.models import User
+from src.account.models import Role, User
 from src.core.db import DbSession
+from src.core.logger import logger
+
+
+class RoleRepository:
+    @staticmethod
+    def create_role(db: DbSession, serialized_data: dict[str, Any]) -> Role:
+        instance = Role(**serialized_data)
+        db.add(instance)
+        db.commit()
+
+        db.refresh(instance)
+
+        return instance
+
+    @staticmethod
+    def get_role_by_id(db: DbSession, role_id: UUID) -> Role | None:
+        role: Role | None = db.get(Role, role_id)
+
+        return role
+
+    @staticmethod
+    def get_roles(db: DbSession):
+        result = db.scalars(select(Role))
+
+        return result
+
+    @staticmethod
+    def update_role(db: DbSession, role_obj, serialized_data: dict[str, Any]):
+        try:
+            for key, val in serialized_data.items():
+                if getattr(role_obj, key) != val:
+                    setattr(role_obj, key, val)
+
+            db.commit()
+            db.refresh(role_obj)
+
+            return role_obj
+        except Exception as e:
+            logger.exception(f"Error: {str(e)}")
+            raise e
 
 
 class UserRepository:
@@ -24,6 +64,7 @@ class UserRepository:
             result = db.scalars(select(User))
             return result
         except Exception as e:
+            logger.exception(f"Error: {str(e)}")
             raise e
 
     @staticmethod
@@ -44,7 +85,7 @@ class UserRepository:
 
             return user_obj
         except Exception as e:
-            print(f"Error {str(e)}")
+            logger.exception(f"Error: {str(e)}")
             raise e
 
     @staticmethod
