@@ -42,6 +42,7 @@ def register_global_exceptions(app: Callable) -> None:
     def authentication_error_exception_handler(
         request: Request, exc: AuthenticationErrorException
     ) -> JSONResponse:
+        logger.info(f"{exc.message}")
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"detail": exc.message}
@@ -51,6 +52,7 @@ def register_global_exceptions(app: Callable) -> None:
     def not_found_exception_handler(
         request: Request, exc: NotFoundException
     ) -> JSONResponse:
+        logger.exception(f"{exc.message}")
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"detail": exc.message}
@@ -60,6 +62,7 @@ def register_global_exceptions(app: Callable) -> None:
     def no_enough_ticket_available_exception_handler(
         request: Request, exc: NoEnoughTicketException
     ) -> JSONResponse:
+        logger.info(f"{exc.message}")
         return JSONResponse(status_code=409, content={"detail": exc.message})
 
     @app.exception_handler(InternalInvariantError)
@@ -68,7 +71,7 @@ def register_global_exceptions(app: Callable) -> None:
     ) -> JSONResponse:
         # TODO: To see the technical related error, you should do that
         # TODO: in logger since internal errors are our mistakes.
-        logger.info(f"{exc.message}")
+        logger.error(f"{exc.message}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Internal server error."},

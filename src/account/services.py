@@ -4,8 +4,8 @@ from typing import Any
 import jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
 from src.account.repositories import RoleRepository, UserRepository
-from src.core.logger import logger
 from src.core.db import DbSession
 from src.account.models import Role, User
 from src.core.exceptions import (
@@ -36,46 +36,54 @@ class RoleService:
     def create_role(
         db: DbSession, validated_data: BaseRoleSchema
     ) -> RoleResponseSchema:
+        serialized_data: dict[str, Any] = validated_data.model_dump(
+            exclude_unset=True)
         try:
-            serialized_data: dict[str, Any] = validated_data.model_dump(
-                exclude_unset=True)
             role = RoleRepository.create_role(db, serialized_data)
 
             return RoleResponseSchema.model_validate(role)
-        except Exception as e:
-            logger.error(f"Error: {str(e)}")
-            raise
+        except SQLAlchemyError as e:
+            raise InternalInvariantError(
+                f"Database Error while creating role.{str(e)}")
 
     @staticmethod
     def get_roles(db: DbSession) -> list[RoleResponseSchema]:
         try:
             result = RoleRepository.get_roles(db)
+            if not result:
+                return []
             return [RoleResponseSchema.model_validate(role) for role in result]
+        except SQLAlchemyError as e:
+            raise InternalInvariantError(
+                f"Database Error while fetching roles. {str(e)}")
         except Exception as e:
-            logger.exception(f"Error: {str(e)}")
-            raise
+            raise InternalInvariantError(f"Error {str(e)}")
 
     @staticmethod
     def get_role(db: DbSession, role_id: uuid.UUID) -> RoleResponseSchema:
-        role: Role | None = RoleRepository.get_role_by_id(db, role_id)
-        if not role:
-            logger.info("Role with the given id not found.")
-            raise NotFoundException("Role with the given id not found.")
-        return RoleResponseSchema.model_validate(role)
+        try:
+            role: Role | None = RoleRepository.get_role_by_id(db, role_id)
+            if not role:
+                raise NotFoundException("Role with the given id not found.")
+            return RoleResponseSchema.model_validate(role)
+        except Exception as e:
+            raise InternalInvariantError(f"Error: {str(e)}")
 
     @staticmethod
     def update_role(
         db: DbSession, role_id: uuid.UUID, role: BaseRoleSchema
     ) -> RoleResponseSchema:
-        serialized_data: dict[str, Any] = role.model_dump(exclude_unset=True)
+        serialized_data: dict[str, Any] = role.model_dump(
+            exclude_unset=True)
         role_obj: Role | None = RoleRepository.get_role_by_id(db, role_id)
         if role_obj is None:
-            logger.info("Role with the given id not found.")
             raise NotFoundException("Role with the given id not found.")
 
-        RoleRepository.update_role(db, role_obj, serialized_data)
-
-        return RoleResponseSchema.model_validate(role_obj)
+        try:
+            RoleRepository.update_role(db, role_obj, serialized_data)
+            return RoleResponseSchema.model_validate(role_obj)
+        except SQLAlchemyError as e:
+            raise InternalInvariantError(f"Failed to update role. {str(e)}")
 
 
 class UserService:
@@ -88,63 +96,70 @@ class UserService:
         db: DbSession,
         validated_data: UserSchema
     ) -> UserResponseSchema:
-        try:
-            serialized_data: dict[str, Any] = validated_data.model_dump(
-                exclude_unset=True, exclude={"confirm_password"}
+        serialized_data: dict[str, Any] = validated_data.model_dump(
+            exclude_unset=True, exclude={"confirm_password"}
+        )
+        password = serialized_data.pop("password")
+
+        if password != validated_data.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Passwords do not match.",
             )
-            password = serialized_data.pop("password")
 
-            if password != validated_data.confirm_password:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Passwords do not match.",
-                )
+        hashed_pass = UserService.get_password_hash(password)
 
-            hashed_pass = UserService.get_password_hash(password)
+        if not hashed_pass:
+            raise InternalInvariantError("Password Hashing Failed.")
 
-            if not hashed_pass:
-                raise InternalInvariantError("Password Hashing Failed.")
-
-            serialized_data.update(password=hashed_pass)
-
+        serialized_data.update(password=hashed_pass)
+        try:
             instance: User = UserRepository.create_user(db, serialized_data)
-
             return UserResponseSchema.model_validate(instance)
-        except Exception:
-            logger.error("Unhandled error occurred during user creation")
-            raise
+        except SQLAlchemyError as e:
+            raise InternalInvariantError(
+                f"Database Error while creating user. {str(e)}")
 
     @staticmethod
     def get_users(db: DbSession) -> list[UserResponseSchema]:
-        users = UserRepository.get_users(db)
-
-        return [UserResponseSchema.model_validate(user) for user in users]
+        try:
+            users = UserRepository.get_users(db)
+            return [UserResponseSchema.model_validate(user) for user in users]
+        except SQLAlchemyError as e:
+            raise InternalInvariantError(
+                f"Database Error while fetching users. {str(e)}")
 
     @staticmethod
     def get_user(db: DbSession, user_id: uuid.UUID) -> UserResponseSchema:
-        user: User | None = UserRepository.get_user_by_id(db, user_id)
+        try:
+            user: User | None = UserRepository.get_user_by_id(db, user_id)
 
-        if not user:
-            logger.info(f"user with id {user_id} not found.")
-            raise NotFoundException("user with a given id not found.")
+            if not user:
+                raise NotFoundException("user with a given id not found.")
 
-        return UserResponseSchema.model_validate(user)
+            return UserResponseSchema.model_validate(user)
+        except SQLAlchemyError as e:
+            raise InternalInvariantError(
+                f"Database Error while fetching user. {str(e)}")
 
     @staticmethod
     def update_user(
         db: DbSession, user_id: uuid.UUID, user: UserSchema
     ) -> UserResponseSchema:
         serialized_data: dict[str, Any] = user.model_dump(exclude_unset=True)
+        try:
+            user_obj: User | None = UserRepository.get_user_by_id(db, user_id)
 
-        user_obj: User | None = UserRepository.get_user_by_id(db, user_id)
+            if not user_obj:
+                raise NotFoundException("user with a given id not found.")
 
-        if not user_obj:
-            raise NotFoundException("user with a given id not found.")
+            updated_user = UserRepository.update_user(
+                db, user_obj, serialized_data)
 
-        updated_user = UserRepository.update_user(
-            db, user_obj, serialized_data)
-
-        return UserResponseSchema.model_validate(updated_user)
+            return UserResponseSchema.model_validate(updated_user)
+        except SQLAlchemyError as e:
+            raise InternalInvariantError(
+                f"Database Error while updating users. {str(e)}")
 
     @staticmethod
     def get_current_user(db: DbSession, token) -> UserResponseSchema:
