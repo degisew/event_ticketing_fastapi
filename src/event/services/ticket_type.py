@@ -1,7 +1,5 @@
 from typing import Any
 import uuid
-
-from sqlalchemy import select
 from src.core.db import DbSession
 from src.core.exceptions import NotFoundException
 from src.event.repositories.event import TicketTypeRepository
@@ -28,19 +26,25 @@ class TicketTypeService:
         return TicketTypeResponseSchema.model_validate(instance)
 
     @staticmethod
-    def get_ticket_types(db: DbSession) -> list[TicketTypeResponseSchema]:
+    def get_ticket_types(
+        db: DbSession,
+        event_id: uuid.UUID
+    ) -> list[TicketTypeResponseSchema]:
 
-        result = TicketTypeRepository.get_ticket_types(db)
+        result = TicketTypeRepository.get_ticket_types(db, event_id)
         return [
             TicketTypeResponseSchema.model_validate(t_type) for t_type in result
         ]
 
     @staticmethod
     def get_ticket_type(
-        db: DbSession, ticket_type_id: uuid.UUID
+        db: DbSession,
+        event_id: uuid.UUID,
+        ticket_type_id: uuid.UUID
     ) -> TicketTypeResponseSchema:
         ticket_type: TicketType | None = TicketTypeRepository.get_ticket_type(
             db,
+            event_id,
             ticket_type_id
         )
         if not ticket_type:
@@ -50,12 +54,16 @@ class TicketTypeService:
 
     @staticmethod
     def update_ticket_type(
-        db: DbSession, payload: TicketTypeSchema, ticket_type_id: uuid.UUID
+        db: DbSession,
+        payload: TicketTypeSchema,
+        event_id: uuid.UUID,
+        ticket_type_id: uuid.UUID
     ) -> TicketTypeResponseSchema:
         serialized_data: dict[str, Any] = payload.model_dump(exclude_unset=True)
 
         ticket_type_obj: TicketType | None = TicketTypeRepository.get_ticket_type(
             db,
+            event_id,
             ticket_type_id
         )
 

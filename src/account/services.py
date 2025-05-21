@@ -1,9 +1,10 @@
 import os
 import uuid
-from typing import Any
+from typing import Annotated, Any
+from fastapi.security import OAuth2PasswordBearer
 import jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from src.account.repositories import RoleRepository, UserRepository
 from src.core.db import DbSession
@@ -29,6 +30,11 @@ ALGORITHM: str = os.getenv("ALGORITHM", default="")
 if not SECRET_KEY or not ALGORITHM:
     raise InternalInvariantError(
         "Missing SECRET_KEY or ALGORITHM in .env file.")
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+
+oauth_token_bearer = Annotated[str, Depends(oauth2_scheme)]
 
 
 class RoleService:
@@ -162,7 +168,7 @@ class UserService:
                 f"Database Error while updating users. {str(e)}")
 
     @staticmethod
-    def get_current_user(db: DbSession, token) -> UserResponseSchema:
+    def get_current_user(db: DbSession, token: oauth_token_bearer) -> UserResponseSchema:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             user_id = payload.get("user_id")

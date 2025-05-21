@@ -1,22 +1,20 @@
 import uuid
-from typing import Annotated, List
-from fastapi import APIRouter, Depends, Request, status
-from fastapi.security import OAuth2PasswordBearer
+from typing import List
+from fastapi import APIRouter, status
+from src.account.dependencies import CurrentUser
 
 from src.account.schemas import (
-    BaseUserSchema,
+    UpdateUserSchema,
     UserSchema,
     UserResponseSchema,
 )
 
 from src.account.services import UserService
 from src.core.db import DbSession
+from src.event.schemas.reservation import ReservationResponseSchema
+from src.event.services.reservation import ReservationService
 
 router = APIRouter(prefix="/users", tags=["Account"])
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
-
-oauth_token_bearer = Annotated[str, Depends(oauth2_scheme)]
 
 
 @router.post(
@@ -41,9 +39,17 @@ async def get_users(db: DbSession) -> List[UserResponseSchema]:
 
 @router.get("/profile")
 async def get_current_user_profile(
-    db: DbSession, token: oauth_token_bearer
+    db: DbSession, current_user: CurrentUser
 ) -> UserResponseSchema:
-    return UserService.get_current_user(db, token)
+    return current_user
+
+
+@router.patch("/profile/edit", response_model=UserResponseSchema)
+async def update_user(db: DbSession, current_user: CurrentUser, user: UpdateUserSchema):
+    """
+    Update user profile.
+    """
+    return UserService.update_user(db, current_user.id, user)
 
 
 @router.get("/{user_id}", response_model=UserResponseSchema)
@@ -52,11 +58,3 @@ async def get_user(db: DbSession, user_id: uuid.UUID) -> UserResponseSchema:
     Get user by ID.
     """
     return UserService.get_user(db, user_id)
-
-
-@router.patch("/{user_id}", response_model=UserResponseSchema)
-async def update_user(db: DbSession, user_id: uuid.UUID, user: BaseUserSchema):
-    """
-    Update an existing user.
-    """
-    return UserService.update_user(db, user_id, user)

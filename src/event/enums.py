@@ -31,6 +31,11 @@ class TicketTypes(Enum):
     VIP = "ticket_type_vip"
 
 
+class TransactionPaymentStatuses(Enum):
+    COMPLETED = "transaction_payment_status_completed"
+    REFUNDED = "transaction_payment_status_refunded"
+
+
 # * I do this instead of storing TYPE inside the enums is b/c
 # * semantically, TYPE is not an enum——it’s metadata about the enum group.
 RESERVATION_STATUS_TYPE = "reservation_status"
@@ -38,3 +43,4 @@ TICKET_STATUS_TYPE = "ticket_status"
 TICKET_TYPES_TYPE = "ticket_type_type"
 RESERVATION_PAYMENT_STATUS_TYPE = "reservation_payment_status"
 SEAT_STATUS_TYPE = "seat_status"
+TRANSACTION_PAYMENT_STATUS_TYPE = "transaction_payment_status_type"

@@ -1,5 +1,6 @@
 import uuid
 from typing import Any
+from src.account.dependencies import CurrentUser
 from src.core.db import DbSession, atomic_transaction
 from src.core.exceptions import (
     InternalInvariantError,
@@ -9,32 +10,50 @@ from src.core.exceptions import (
 from src.core.models import DataLookup
 from src.core.repositories import DataLookupRepository
 from src.event.models.event import Ticket, TicketType
+from src.event.models.reservation import Transaction
 from src.event.repositories.event import TicketTypeRepository
 from src.event.repositories.reservation import ReservationRepository
 from src.event.repositories.ticket import TicketRepository
+from src.event.repositories.transaction import TransactionRepository
 from src.event.schemas.reservation import (
+    PurchaseRequestSchema,
+    PurchaseResponseSchema,
     ReservationResponseSchema,
-    ReservationSchema
+    ReservationSchema,
+    TransactionResponseSchema
 )
 from src.event.enums import (
     RESERVATION_STATUS_TYPE,
     TICKET_STATUS_TYPE,
+    TRANSACTION_PAYMENT_STATUS_TYPE,
     ReservationStatuses,
-    TicketStatuses
+    TicketStatuses,
+    TransactionPaymentStatuses
 )
 
 
 class ReservationService:
     @staticmethod
     def create_reservations(
-        db: DbSession, validated_data: ReservationSchema
+        db: DbSession,
+        event_id: uuid.UUID,
+        current_user: CurrentUser,
+        validated_data: ReservationSchema
     ) -> ReservationResponseSchema:
         serialized_data: dict[str, Any] = validated_data.model_dump(
             exclude_unset=True)
 
+        serialized_data["event_id"] = event_id
+        serialized_data["user_id"] = current_user.id
         ticket_type_id = serialized_data.get("ticket_type_id")
-        event_id = serialized_data.get("event_id")
         ticket_quantity = serialized_data.get("ticket_quantity")
+
+        # VALIDATION of the ticket type belongs to event
+        ticket_type: TicketType | None = TicketTypeRepository.get_ticket_type(
+            db, event_id, ticket_type_id)
+
+        if not ticket_type:
+            raise NotFoundException("Valid ticket type not found.")
 
         reservation_confirmed_status: DataLookup | None = (
             DataLookupRepository.get_status_by_type(
@@ -52,10 +71,17 @@ class ReservationService:
         serialized_data["status"] = reservation_confirmed_status
 
         with atomic_transaction(db):
-            reservation = ReservationRepository.create(db, serialized_data)
+            reservation = ReservationRepository.create(
+                db,
+                serialized_data
+            )
 
             ReservationService.create_tickets(
-                db, reservation.id, event_id, ticket_type_id, ticket_quantity
+                db,
+                reservation.id,
+                event_id,
+                ticket_type_id,
+                ticket_quantity
             )
 
             db.refresh(reservation)
@@ -134,8 +160,10 @@ class ReservationService:
 
         t_type: TicketType | None = TicketTypeRepository.get_ticket_type(
             db=db,
+            event_id=event_id,
             ticket_type_id=ticket_type_id,
-            locking_needed=True  # db level row-locking to avoid race condition.
+            # db level row-locking to avoid race condition.
+            locking_needed=True
         )
 
         if not t_type:
@@ -162,19 +190,97 @@ class ReservationService:
         return tickets
 
     @staticmethod
-    def get_reservations(db: DbSession) -> list[ReservationResponseSchema]:
-        result = ReservationRepository.get_reservations(db)
+    def get_reservations(
+        db: DbSession,
+        event_id: uuid.UUID,
+    ) -> list[ReservationResponseSchema]:
+        result = ReservationRepository.get_reservations(db, event_id)
 
         return [ReservationResponseSchema.model_validate(res) for res in result]
 
-    # @staticmethod
-    # def get_reservation(
-    #     db: DbSession, reservation_id: uuid.UUID
-    # ) -> ReservationResponseSchema:
-    #     pass
+    @staticmethod
+    def get_user_reservations(
+        db: DbSession,
+        current_user: CurrentUser
+    ):
+        result = ReservationRepository.get_reservations_by_user(
+            db,
+            current_user.id
+        )
 
-    # @staticmethod
-    # def update_reservation(
-    #     db: DbSession,reservation_id: uuid.UUID, reservation: ReservationSchema
-    # ) -> ReservationResponseSchema:
-    #     pass
+        return [ReservationResponseSchema.model_validate(res) for res in result]
+
+    @staticmethod
+    def purchase_tickets(
+        db: DbSession,
+        current_user: CurrentUser,
+        reservation_id: uuid.UUID,
+        payload: PurchaseRequestSchema
+    ) -> PurchaseResponseSchema:
+
+        serialized_data: dict[str, Any] = payload.model_dump(
+            exclude_unset=True)
+
+        payment_status: DataLookup | None = DataLookupRepository.get_status_by_type(
+            db,
+            TRANSACTION_PAYMENT_STATUS_TYPE,
+            TransactionPaymentStatuses.COMPLETED.value
+        )
+
+        if not payment_status:
+            raise InternalInvariantError(
+                "TransactionPaymentStatuses.COMPLETED.value is missed in the DataLookup."
+            )
+
+        serialized_data["payment_status"] = payment_status
+
+        serialized_data["user_id"] = current_user.id
+
+        serialized_data["reservation_id"] = reservation_id
+
+        reservation_status: DataLookup | None = DataLookupRepository.get_status_by_type(
+            db,
+            RESERVATION_STATUS_TYPE,
+            ReservationStatuses.COMPLETED.value
+        )
+
+        if not reservation_status:
+            raise InternalInvariantError(
+                "ReservationStatuses.COMPLETED is missed in the DataLookup."
+            )
+
+        sold_ticket_status: DataLookup | None = DataLookupRepository.get_status_by_type(
+            db,
+            TICKET_STATUS_TYPE,
+            TicketStatuses.SOLD.value
+        )
+        if not sold_ticket_status:
+            raise InternalInvariantError(
+                "TicketStatuses.SOLD is missed in the DataLookup.")
+
+        with atomic_transaction(db):
+            instance: Transaction = TransactionRepository.create(
+                db, serialized_data)
+
+            db.flush()
+
+            instance.reservation.mark_as_completed(reservation_status)
+
+            TicketRepository.update_ticket_by_reservation_id(
+                db,
+                reservation_id,
+                sold_ticket_status.id
+            )
+
+            db.refresh(instance)
+
+            return PurchaseResponseSchema.model_validate(instance)
+
+    @staticmethod
+    def get_transactions(
+        db: DbSession,
+    ) -> list[TransactionResponseSchema]:
+        transactions = TransactionRepository.get_all_transactions(db)
+
+        # TODO: Consider this might be an overhead for large transaction records
+        return [TransactionResponseSchema.model_validate(trans) for trans in transactions]

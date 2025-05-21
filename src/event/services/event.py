@@ -1,7 +1,5 @@
 from typing import Any
 import uuid
-
-from sqlalchemy import select
 from src.core.db import DbSession
 from src.core.exceptions import NotFoundException
 from src.event.repositories.event import EventRepository

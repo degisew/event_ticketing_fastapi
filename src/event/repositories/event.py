@@ -62,10 +62,11 @@ class TicketTypeRepository:
         return instance
 
     @staticmethod
-    def get_ticket_types(db: DbSession):
+    def get_ticket_types(db: DbSession, event_id: UUID):
         try:
             result = db.scalars(
                 select(TicketType)
+                .where(TicketType.event_id == event_id)
             )
 
             return result
@@ -76,6 +77,7 @@ class TicketTypeRepository:
     @staticmethod
     def get_ticket_type(
         db: DbSession,
+        event_id: UUID,
         ticket_type_id: UUID,
         locking_needed: bool = False
     ) -> TicketType | None:
@@ -85,13 +87,19 @@ class TicketTypeRepository:
             # * to prevent race codition that leads to overbooking
             t_type: TicketType | None = db.scalar(
                 select(TicketType)
-                .where(TicketType.id == ticket_type_id)
+                .where(
+                    TicketType.id == ticket_type_id,
+                    TicketType.event_id == event_id
+                )
                 .with_for_update()  # row-locking happens here
             )
         else:
             t_type: TicketType | None = db.scalar(
                 select(TicketType)
-                .where(TicketType.id == ticket_type_id)
+                .where(
+                    TicketType.id == ticket_type_id,
+                    TicketType.event_id == event_id
+                    )
             )
 
         return t_type
