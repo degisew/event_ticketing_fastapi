@@ -11,12 +11,17 @@ class BaseRoleSchema(BaseModel):
     model_config: ConfigDict = {"from_attributes": True}
 
 
+class UpdateRoleSchema(BaseModel):
+    name: str | None = None
+    code: str | None = None
+
+
 class RoleResponseSchema(BaseRoleSchema, BaseResponseSchema):
     model_config: ConfigDict = {"from_attributes": True}
 
 
 class UpdateUserSchema(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 
 class BaseUserSchema(BaseModel):

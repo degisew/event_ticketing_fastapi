@@ -19,10 +19,6 @@ from src.event.models.event import Event, Ticket, TicketType
 class Reservation(AbstractBaseModel):
     __tablename__ = "reservations"
 
-    # __table_args__ = (
-    #     UniqueConstraint("event_id", name="unq_event_seat_reservation"),
-    # )
-
     def default_expiry(self) -> datetime:
         """a helper method for calculating a default
         reservation expiration time.

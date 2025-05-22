@@ -2,9 +2,12 @@ from uuid import UUID
 from fastapi.routing import APIRouter
 from src.account.dependencies import CurrentUser
 from src.core.db import DbSession
-from src.event.schemas.event import EventSchema, EventResponseSchema
-from src.event.schemas.reservation import ReservationResponseSchema, ReservationSchema
-from src.event.schemas.ticket import TicketTypeResponseSchema, TicketTypeSchema
+from src.event.schemas.event import EventSchema, EventResponseSchema, UpdateEventSchema
+from src.event.schemas.reservation import (
+     ReservationResponseSchema,
+     ReservationSchema
+)
+from src.event.schemas.ticket import TicketTypeResponseSchema, TicketTypeSchema, UpdateTicketTypeSchema
 from src.event.services.event import EventService
 from src.event.services.reservation import ReservationService
 from src.event.services.ticket_type import TicketTypeService
@@ -13,7 +16,10 @@ router = APIRouter(prefix="/events")
 
 
 @router.post("/")
-async def create_events(db: DbSession, payload: EventSchema) -> EventResponseSchema:
+async def create_events(
+    db: DbSession,
+    payload: EventSchema
+) -> EventResponseSchema:
     return EventService.create_events(db, payload)
 
 
@@ -29,22 +35,24 @@ async def get_event(db: DbSession, event_id) -> EventResponseSchema:
 
 @router.patch("/{event_id}")
 async def update_event(
-    db: DbSession, event: EventSchema, event_id
+    db: DbSession, event: UpdateEventSchema, event_id
 ) -> EventResponseSchema:
     return EventService.update_event(db, event, event_id)
 
 
 @router.post("/{event_id}/ticket_types")
 async def create_ticket_types(
-    db: DbSession, payload: TicketTypeSchema
+    db: DbSession,
+    event_id: UUID,
+    payload: TicketTypeSchema
 ) -> TicketTypeResponseSchema:
-    return TicketTypeService.create_ticket_types(db, payload)
+    return TicketTypeService.create_ticket_types(db, event_id, payload)
 
 
 @router.get("/{event_id}/ticket_types")
 async def get_ticket_types(
     db: DbSession,
-    event_id
+    event_id: UUID
 ) -> list[TicketTypeResponseSchema]:
     return TicketTypeService.get_ticket_types(db, event_id)
 
@@ -52,7 +60,7 @@ async def get_ticket_types(
 @router.get("/{event_id}/ticket_types/{ticket_type_id}")
 async def get_ticket_type(
     db: DbSession,
-    event_id,
+    event_id: UUID,
     ticket_type_id
 ) -> TicketTypeResponseSchema:
     return TicketTypeService.get_ticket_type(db, event_id,  ticket_type_id)
@@ -61,8 +69,8 @@ async def get_ticket_type(
 @router.patch("/{event_id}/ticket_types/{ticket_type_id}")
 async def update_ticket_type(
     db: DbSession,
-    ticket_type: TicketTypeResponseSchema,
-    event_id,
+    ticket_type: UpdateTicketTypeSchema,
+    event_id: UUID,
     ticket_type_id
 ) -> TicketTypeResponseSchema:
     return TicketTypeService.update_ticket_type(db, ticket_type, event_id, ticket_type_id)

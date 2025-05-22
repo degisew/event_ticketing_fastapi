@@ -1,17 +1,14 @@
-from datetime import datetime
-from decimal import Decimal
 import uuid
+from decimal import Decimal
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from src.account.schemas import UserResponseSchema
 from src.core.schemas import BaseResponseSchema, DataLookupResponseSchema
-from src.event.schemas.event import EventSchema
 from src.event.schemas.ticket import TicketTypeSchema
 
 
 class ReservationSchema(BaseModel):
     ticket_quantity: int
-    # user_id: uuid.UUID
-    # event_id: uuid.UUID
     ticket_type_id: uuid.UUID
 
     model_config: ConfigDict = {
@@ -21,16 +18,22 @@ class ReservationSchema(BaseModel):
 
 class ReservationResponseSchema(BaseModel, BaseResponseSchema):
     user: UserResponseSchema
-    # event: EventSchema
     ticket_type: TicketTypeSchema
-
+    ticket_quantity: int
     model_config: ConfigDict = {
         "from_attributes": True
     }
 
 
+class CheckoutSummaryResponseSchema(BaseModel):
+    reservation_id: uuid.UUID
+    ticket_type: str
+    quantity: int
+    unit_price: Decimal
+    total_price: Decimal
+
+
 class PurchaseRequestSchema(BaseModel):
-    # user_id: UUID
     payment_method: str
     amount: Decimal
 

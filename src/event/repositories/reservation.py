@@ -1,7 +1,10 @@
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 from sqlalchemy import select
+from sqlalchemy.sql import func
 from src.core.db import DbSession
+from src.core.exceptions import NotFoundException
 from src.event.models.reservation import Reservation
 
 
@@ -40,3 +43,12 @@ class ReservationRepository:
         )
 
         return result
+    
+    @staticmethod
+    def get_reservation_by_id(
+        db: DbSession,
+        reservation_id: UUID
+    ) -> Reservation | None:
+        reservation: Reservation | None = db.get(Reservation, reservation_id)
+
+        return reservation

@@ -7,7 +7,6 @@ from src.core.schemas import BaseResponseSchema
 class EventSchema(BaseModel):
     name: str
     description: str
-    organizer_id: uuid.UUID
     location: str
     venue: str
     total_tickets: int
@@ -19,7 +18,19 @@ class EventSchema(BaseModel):
     }
 
 
+class UpdateEventSchema(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    location: str | None = None
+    venue: str | None = None
+    total_tickets: int | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+
+
 class EventResponseSchema(EventSchema, BaseResponseSchema):
+    organizer_email: str
+
     model_config: ConfigDict = {
         "from_attributes": True
     }

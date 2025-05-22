@@ -6,7 +6,7 @@ from src.account.dependencies import CurrentUser
 from src.core.db import DbSession
 
 from src.event.background_tasks import send_email
-from src.event.schemas.reservation import ReservationResponseSchema
+from src.event.schemas.reservation import CheckoutSummaryResponseSchema, ReservationResponseSchema
 from src.event.services.reservation import ReservationService
 from src.event.schemas.reservation import (
     PurchaseRequestSchema,
@@ -35,8 +35,6 @@ async def purchase_tickets(
     response = ReservationService.purchase_tickets(
         db, current_user, reservation_id, payload)
 
-    # TODO: We may need to remove user_id here if
-    # TODO: we're going to receive User obj from the payload
     bg_tasks.add_task(
         send_email,
         user_id=response.user_id,
@@ -44,3 +42,8 @@ async def purchase_tickets(
     )
 
     return response
+
+
+@router.get("/{reservation_id}/checkout")
+def calculate_total_payment(db: DbSession, reservation_id: UUID):
+    return ReservationService.calculate_total_payment(db, reservation_id)

@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from src.account.schemas import (
     BaseRoleSchema,
     RoleResponseSchema,
+    UpdateRoleSchema,
 )
 from src.account.services import RoleService
 from src.core.db import DbSession
@@ -19,7 +20,10 @@ async def get_roles(db: DbSession) -> List[RoleResponseSchema]:
 
 
 @router.post("/")
-async def create_roles(db: DbSession, role: BaseRoleSchema) -> RoleResponseSchema:
+async def create_roles(
+    db: DbSession,
+    role: BaseRoleSchema
+) -> RoleResponseSchema:
     return RoleService.create_role(db, role)
 
 
@@ -30,6 +34,6 @@ async def get_role(db: DbSession, role_id: uuid.UUID) -> RoleResponseSchema:
 
 @router.patch("/{role_id}")
 async def update_role(
-    db: DbSession, role_id: uuid.UUID, role: BaseRoleSchema
+    db: DbSession, role_id: uuid.UUID, role: UpdateRoleSchema
 ) -> RoleResponseSchema:
     return RoleService.update_role(db, role_id, role)

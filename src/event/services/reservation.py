@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from typing import Any
 from src.account.dependencies import CurrentUser
@@ -10,12 +11,13 @@ from src.core.exceptions import (
 from src.core.models import DataLookup
 from src.core.repositories import DataLookupRepository
 from src.event.models.event import Ticket, TicketType
-from src.event.models.reservation import Transaction
+from src.event.models.reservation import Reservation, Transaction
 from src.event.repositories.event import TicketTypeRepository
 from src.event.repositories.reservation import ReservationRepository
 from src.event.repositories.ticket import TicketRepository
 from src.event.repositories.transaction import TransactionRepository
 from src.event.schemas.reservation import (
+    CheckoutSummaryResponseSchema,
     PurchaseRequestSchema,
     PurchaseResponseSchema,
     ReservationResponseSchema,
@@ -209,6 +211,31 @@ class ReservationService:
         )
 
         return [ReservationResponseSchema.model_validate(res) for res in result]
+
+    @staticmethod
+    def calculate_total_payment(
+        db: DbSession,
+        reservation_id: uuid.UUID
+    ) -> CheckoutSummaryResponseSchema:
+        reservation: Reservation | None = ReservationRepository.get_reservation_by_id(
+            db,
+            reservation_id
+        )
+        if not reservation:
+            raise NotFoundException("Reservation not found.")
+
+        ticket_type: TicketType = reservation.ticket_type
+        quantity: int = reservation.ticket_quantity
+        unit_price: Decimal = ticket_type.price
+        total_price: Decimal = unit_price * quantity
+
+        return CheckoutSummaryResponseSchema(
+            reservation_id=reservation_id,
+            ticket_type=ticket_type.name,
+            quantity=quantity,
+            unit_price=unit_price,
+            total_price=total_price
+        )
 
     @staticmethod
     def purchase_tickets(

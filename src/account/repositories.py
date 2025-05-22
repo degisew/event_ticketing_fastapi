@@ -1,6 +1,6 @@
 from uuid import UUID
 from typing import Any
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound
 from src.account.models import Role, User
 from src.core.db import DbSession
@@ -20,7 +20,8 @@ class RoleRepository:
 
     @staticmethod
     def get_role_by_id(db: DbSession, role_id: UUID) -> Role | None:
-        role: Role | None = db.update(Role, role_id)
+        role: Role | None = db.get(Role, role_id)
+
         return role
 
     @staticmethod
