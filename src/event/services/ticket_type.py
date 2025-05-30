@@ -1,7 +1,6 @@
 from typing import Any
-import uuid
-
-from sqlalchemy import select
+from uuid import UUID
+from src.account.dependencies import CurrentUser
 from src.core.db import DbSession
 from src.core.exceptions import NotFoundException
 from src.event.repositories.event import TicketTypeRepository
@@ -13,7 +12,9 @@ from src.event.models.event import TicketType
 class TicketTypeService:
     @staticmethod
     def create_ticket_types(
-        db: DbSession, validated_data: TicketTypeSchema
+        db: DbSession,
+        event_id: UUID,
+        validated_data: TicketTypeSchema
     ) -> TicketTypeResponseSchema:
 
         serialized_data: dict[str, Any] = validated_data.model_dump(
@@ -22,25 +23,32 @@ class TicketTypeService:
         remaining_tickets: int | None = serialized_data.get("total_tickets")
 
         serialized_data["remaining_tickets"] = remaining_tickets
+        serialized_data["event_id"] = event_id
 
         instance: TicketType = TicketTypeRepository.create(db, serialized_data)
 
         return TicketTypeResponseSchema.model_validate(instance)
 
     @staticmethod
-    def get_ticket_types(db: DbSession) -> list[TicketTypeResponseSchema]:
+    def get_ticket_types(
+        db: DbSession,
+        event_id: UUID
+    ) -> list[TicketTypeResponseSchema]:
 
-        result = TicketTypeRepository.get_ticket_types(db)
+        result = TicketTypeRepository.get_ticket_types(db, event_id)
         return [
             TicketTypeResponseSchema.model_validate(t_type) for t_type in result
         ]
 
     @staticmethod
     def get_ticket_type(
-        db: DbSession, ticket_type_id: uuid.UUID
+        db: DbSession,
+        event_id: UUID,
+        ticket_type_id: UUID
     ) -> TicketTypeResponseSchema:
         ticket_type: TicketType | None = TicketTypeRepository.get_ticket_type(
             db,
+            event_id,
             ticket_type_id
         )
         if not ticket_type:
@@ -50,12 +58,16 @@ class TicketTypeService:
 
     @staticmethod
     def update_ticket_type(
-        db: DbSession, payload: TicketTypeSchema, ticket_type_id: uuid.UUID
+        db: DbSession,
+        payload: TicketTypeSchema,
+        event_id: UUID,
+        ticket_type_id: UUID
     ) -> TicketTypeResponseSchema:
         serialized_data: dict[str, Any] = payload.model_dump(exclude_unset=True)
 
         ticket_type_obj: TicketType | None = TicketTypeRepository.get_ticket_type(
             db,
+            event_id,
             ticket_type_id
         )
 

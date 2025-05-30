@@ -1,7 +1,5 @@
 from typing import Any
 import uuid
-
-from sqlalchemy import select
 from src.core.db import DbSession
 from src.core.exceptions import NotFoundException
 from src.event.repositories.event import EventRepository
@@ -26,7 +24,13 @@ class EventService:
     def get_events(db: DbSession) -> list[EventResponseSchema]:
         result = EventRepository.get_events(db)
 
-        return [EventResponseSchema.model_validate(user) for user in result]
+        return [
+            EventResponseSchema(
+                **event.__dict__,
+                organizer_email=email
+            )
+            for event, email in result
+        ]
 
     @staticmethod
     def get_event(db: DbSession, event_id: uuid.UUID) -> EventResponseSchema:

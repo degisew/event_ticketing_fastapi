@@ -1,3 +1,4 @@
+from typing import Optional
 import uuid
 from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from src.core.schemas import BaseResponseSchema
@@ -10,8 +11,17 @@ class BaseRoleSchema(BaseModel):
     model_config: ConfigDict = {"from_attributes": True}
 
 
+class UpdateRoleSchema(BaseModel):
+    name: str | None = None
+    code: str | None = None
+
+
 class RoleResponseSchema(BaseRoleSchema, BaseResponseSchema):
     model_config: ConfigDict = {"from_attributes": True}
+
+
+class UpdateUserSchema(BaseModel):
+    username: str | None = None
 
 
 class BaseUserSchema(BaseModel):

@@ -10,7 +10,17 @@ class TicketTypeSchema(BaseModel):
     description: str
     price: Decimal
     total_tickets: int
-    event_id: uuid.UUID
+
+    model_config: ConfigDict = {
+        "from_attributes": True
+    }
+
+
+class UpdateTicketTypeSchema(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    price: Decimal | None = None
+    total_tickets: int | None = None
 
     model_config: ConfigDict = {
         "from_attributes": True
@@ -19,6 +29,7 @@ class TicketTypeSchema(BaseModel):
 
 class TicketTypeResponseSchema(TicketTypeSchema, BaseResponseSchema):
     remaining_tickets: int
+    event_id: uuid.UUID
 
     model_config: ConfigDict = {
         "from_attributes": True

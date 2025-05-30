@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import ScalarResult, select
 
 from src.core.db import DbSession
-from src.payment.models import Transaction
+from src.event.models.reservation import Transaction
 
 
 class TransactionRepository:
@@ -31,7 +31,9 @@ class TransactionRepository:
         return instance
 
     @staticmethod
-    def get_all_transactions(db: DbSession) -> ScalarResult[Transaction]:
+    def get_all_transactions(
+        db: DbSession,
+    ) -> ScalarResult[Transaction]:
         # returning the generator as is to benefit from it's laziness
         # since we're doing looping inside the caller.
         return db.scalars(
