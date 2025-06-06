@@ -11,7 +11,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-brightgreen.svg)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Docker-20.10+-blue.svg)](https://docker.com)
 
-**Contact**: [degisew.mengist21@gmail.com](mailto:degisew.mengist21@gmail.com) | [t.me](https://t.me/pydagi)
+**Contact**: [degisew.mengist21@gmail.com](mailto:degisew.mengist21@gmail.com) | [LinkedIn](https://linkedin.com/in/degisew-mengist)
 
 </div>
 
@@ -28,11 +28,11 @@ An advanced Online Event Ticketing System that enables users to seamlessly brows
 - QR code ticket generation and sending them through email.
 - Ticket booking before payment with expiration time.
 
-**Links**:
+<!-- **Links**:
 
 - **Portfolio**: [Portfolio](https://degisew-portfolio.netlify.com)
 - **GitHub**: [GitHub](https://github.com/degisew)
-- **LinkedIn**: [LinkedIn](https://linkedin.com/in/degisew-mengist)
+- **LinkedIn**: [LinkedIn](https://linkedin.com/in/degisew-mengist) -->
 
 ## Table of Contents
 
