@@ -21,7 +21,6 @@ An advanced Online Event Ticketing System that enables users to seamlessly brows
 
 **Key Features**:
 
-- RESTful APIs with optimized PostgreSQL queries.
 - Secure JWT authentication and role-based access control.
 - Containerized deployment with Docker.
 - Background task processing with FastAPI BackgroundTask.
