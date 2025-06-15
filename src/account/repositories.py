@@ -1,10 +1,10 @@
 from uuid import UUID
 from typing import Any
-from sqlalchemy import select, update
-from sqlalchemy.exc import SQLAlchemyError, NoResultFound
+from sqlalchemy import select
+# from sqlalchemy.exc import SQLAlchemyError, NoResultFound
 from src.account.models import Role, User
 from src.core.db import DbSession
-from src.core.logger import logger
+# from src.core.logger import logger
 
 
 class RoleRepository:

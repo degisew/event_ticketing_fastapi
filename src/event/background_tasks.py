@@ -1,47 +1,27 @@
-import os
 from uuid import UUID
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from pydantic import EmailStr
-from dotenv import load_dotenv
 from fastapi import UploadFile
-from src.account.models import User
 from src.account.repositories import UserRepository
 from src.core.db import SessionLocal
 from src.core.logger import logger
+from src.core.config import settings
 from src.core.exceptions import NotFoundException
 from src.event.repositories.ticket import TicketRepository
 from src.event.utils import generate_qr_code
 
 
-env = load_dotenv()
-
-
-class Envs:
-    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME")
-    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD")
-    MAIL_FROM: str = os.getenv("MAIL_FROM")
-    MAIL_PORT: int = os.getenv("MAIL_PORT")
-    MAIL_SERVER: str = os.getenv("MAIL_SERVER")
-    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME")
-    MAIL_STARTTLS: bool = os.getenv("MAIL_STARTTLS")
-    MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL_TLS")
-    USE_CREDENTIALS: bool = os.getenv("USE_CREDENTIALS")
-    VALIDATE_CERTS: bool = os.getenv("VALIDATE_CERTS")
-
-
-email_env = Envs()
-
 conf = ConnectionConfig(
-    MAIL_USERNAME=email_env.MAIL_USERNAME,
-    MAIL_PASSWORD=email_env.MAIL_PASSWORD,
-    MAIL_FROM=email_env.MAIL_FROM,
-    MAIL_PORT=email_env.MAIL_PORT,
-    MAIL_SERVER=email_env.MAIL_SERVER,
-    MAIL_FROM_NAME=email_env.MAIL_FROM_NAME,
-    MAIL_STARTTLS=email_env.MAIL_STARTTLS,
-    MAIL_SSL_TLS=email_env.MAIL_SSL_TLS,
-    USE_CREDENTIALS=email_env.USE_CREDENTIALS,
-    VALIDATE_CERTS=email_env.VALIDATE_CERTS
+    MAIL_USERNAME=settings.MAIL_USERNAME,
+    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+    MAIL_FROM=settings.MAIL_FROM,
+    MAIL_PORT=settings.MAIL_PORT,
+    MAIL_SERVER=settings.MAIL_SERVER,
+    MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
+    MAIL_STARTTLS=settings.MAIL_STARTTLS,
+    MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
+    USE_CREDENTIALS=settings.USE_CREDENTIALS,
+    VALIDATE_CERTS=settings.VALIDATE_CERTS
 )
 
 

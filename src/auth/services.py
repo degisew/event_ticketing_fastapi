@@ -1,22 +1,20 @@
-import os
 import uuid
 import jwt
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
-from dotenv import load_dotenv
 from passlib.context import CryptContext
 from src.account.models import User
 from src.account.repositories import UserRepository
 from src.account.schemas import UserResponseSchema
 from src.core.db import DbSession
 from src.core.exceptions import InternalInvariantError
+from src.core.config import settings
 
-load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-SECRET_KEY: str = os.getenv("SECRET_KEY", default="")
-ALGORITHM: str = os.getenv("ALGORITHM", default="")
+SECRET_KEY: str = settings.SECRET_KEY
+ALGORITHM: str = settings.ALGORITHM
 
 if not SECRET_KEY or not ALGORITHM:
     raise InternalInvariantError(
@@ -28,16 +26,6 @@ class AuthService:
     @staticmethod
     def verify_password(plain_password, hashed_password) -> bool:
         return pwd_context.verify(plain_password, hashed_password)
-
-    # @staticmethod
-    # def get_user_by_email(db: DbSession, email: str) -> User | None:
-    #     user: User | None = db.scalar(
-    #         select(User).where(
-    #             User.email == email
-    #         )
-    #     )
-
-    #     return user
 
     @staticmethod
     def authenticate_user(

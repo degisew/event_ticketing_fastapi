@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.core.models import Base
-
+from src.core.config import settings
 from src.account import models as account_models
 from src.event.models import event as event_models, reservation as reservation_models
 from src.payment import models as payment_models
@@ -60,16 +60,16 @@ def run_migrations_online() -> None:
 
     from sqlalchemy import create_engine
     import re
-    import os
+    # import os
     from dotenv import load_dotenv
 
     load_dotenv()
 
     url_tokens = {
-        "DB_USER": os.getenv("DB_USER", ""),
-        "DB_PASS": os.getenv("DB_PASS", ""),
-        "DB_HOST": os.getenv("DB_HOST", ""),
-        "DB_NAME": os.getenv("DB_NAME", ""),
+        "DB_USER": settings.DB_USER,
+        "DB_PASS": settings.DB_PASS,
+        "DB_HOST": settings.DB_HOST,
+        "DB_NAME": settings.DB_NAME,
     }
 
     url = config.get_main_option("sqlalchemy.url")

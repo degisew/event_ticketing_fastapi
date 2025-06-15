@@ -1,6 +1,4 @@
-import os
 from datetime import timedelta
-from dotenv import load_dotenv
 from typing import Annotated
 from fastapi import Depends
 from fastapi.routing import APIRouter
@@ -9,14 +7,13 @@ from src.auth.schemas import TokenSchema
 from src.auth.services import AuthService
 from src.core.db import DbSession
 from src.core.exceptions import AuthenticationErrorException
+from src.core.config import settings
 
 
 router = APIRouter(prefix="/auth")
 
-load_dotenv()
 
-ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 0))
+ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 @router.post("/token")
