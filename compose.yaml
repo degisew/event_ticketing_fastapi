@@ -33,8 +33,6 @@ services:
     image: event_ticket_fastapi:dev
     ports:
       - 8000:8000
-    # environment:
-    #   - DATABASE_URL=postgresql://postgres:postgres@db:5432/cleanfastapi
     volumes:
       - ./:/usr/src/app
     user: "${UID}:${GID}"

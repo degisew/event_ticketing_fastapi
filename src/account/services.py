@@ -1,4 +1,3 @@
-import os
 import uuid
 from typing import Annotated, Any
 from fastapi.security import OAuth2PasswordBearer
@@ -8,6 +7,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from src.account.repositories import RoleRepository, UserRepository
 from src.core.db import DbSession
+from src.core.config import settings
 from src.account.models import Role, User
 from src.core.exceptions import (
     AuthenticationErrorException,
@@ -21,11 +21,10 @@ from src.account.schemas import (
     UserSchema,
 )
 
-
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-SECRET_KEY: str = os.getenv("SECRET_KEY", default="")
-ALGORITHM: str = os.getenv("ALGORITHM", default="")
+SECRET_KEY: str = settings.SECRET_KEY
+ALGORITHM: str = settings.ALGORITHM
 
 if not SECRET_KEY or not ALGORITHM:
     raise InternalInvariantError(

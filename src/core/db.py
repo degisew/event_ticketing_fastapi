@@ -1,21 +1,14 @@
-import os
 from typing import Annotated, Any, Generator
 from contextlib import contextmanager
-from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import sessionmaker, Session
-# from src.core.models import Base
+from src.core.config import settings
 
-
-load_dotenv()
-
-
-DB_USER = os.getenv("DB_USER")
-DB_PASS = os.getenv("DB_PASS")
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-
+DB_USER = settings.DB_USER
+DB_PASS = settings.DB_PASS
+DB_HOST = settings.DB_HOST
+DB_NAME = settings.DB_NAME
 
 url: str = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
