@@ -1,6 +1,6 @@
 from typing import Any
 from uuid import UUID
-from sqlalchemy import ScalarResult, select
+from sqlalchemy import select
 from src.account.models import User
 from src.core.db import DbSession
 from src.core.logger import logger

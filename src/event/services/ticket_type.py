@@ -1,6 +1,5 @@
 from typing import Any
 from uuid import UUID
-from src.account.dependencies import CurrentUser
 from src.core.db import DbSession
 from src.core.exceptions import NotFoundException
 from src.event.repositories.event import TicketTypeRepository

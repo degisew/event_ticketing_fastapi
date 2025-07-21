@@ -1,4 +1,3 @@
-from typing import Optional
 import uuid
 from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from src.core.schemas import BaseResponseSchema
