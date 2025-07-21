@@ -6,7 +6,7 @@ from src.account.dependencies import CurrentUser
 from src.core.db import DbSession
 
 from src.event.background_tasks import send_email
-from src.event.schemas.reservation import CheckoutSummaryResponseSchema, ReservationResponseSchema
+from src.event.schemas.reservation import ReservationResponseSchema
 from src.event.services.reservation import ReservationService
 from src.event.schemas.reservation import (
     PurchaseRequestSchema,

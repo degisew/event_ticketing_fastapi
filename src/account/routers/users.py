@@ -11,8 +11,6 @@ from src.account.schemas import (
 
 from src.account.services import UserService
 from src.core.db import DbSession
-from src.event.schemas.reservation import ReservationResponseSchema
-from src.event.services.reservation import ReservationService
 
 router = APIRouter(prefix="/users", tags=["Account"])
 
